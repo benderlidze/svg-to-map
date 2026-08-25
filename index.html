@@ -61,13 +61,6 @@
   .hint kbd{background:#0b1017;border:1px solid var(--line);border-radius:4px;padding:0 4px;
     font-family:ui-monospace,Menlo,monospace;font-size:10px}
 
-  #drop{
-    border:1px dashed #3b4855;border-radius:8px;padding:14px 10px;text-align:center;
-    color:var(--dim);cursor:pointer}
-  #drop:hover{border-color:var(--acc);color:var(--ink)}
-  #drop b{color:var(--ink);display:block;font-size:12px;margin-bottom:2px}
-  body.dragover #drop{border-color:var(--acc);background:rgba(255,180,84,.08)}
-
   #status{position:absolute;left:12px;bottom:26px;z-index:5;background:rgba(21,27,35,.9);
     border:1px solid var(--line);border-radius:6px;padding:6px 9px;color:var(--dim);
     font-family:ui-monospace,Menlo,monospace;font-size:11px}
@@ -90,18 +83,13 @@
 <div id="status">масштаб <b id="stW">—</b> · угол <b id="stR">—</b> · центр <b id="stC">—</b></div>
 
 <div id="panel">
-  <header><b>Оверлей</b><span id="fileName">файл не выбран</span>
+  <header><b>Оверлей</b><span id="fileName">test.svg</span>
     <button id="fold" title="Свернуть">–</button></header>
   <div id="body">
 
-    <div id="drop"><b>Перетащите SVG</b>или нажмите, чтобы выбрать</div>
-    <input type="file" id="file" accept=".svg,image/svg+xml" hidden>
-
     <div class="grp">
-      <div class="lab">Нижний слой изображения <i id="picFileName">не выбран</i></div>
-      <button id="picPick">Выбрать PNG / JPG / WebP</button>
-      <input type="file" id="picFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-      <div class="row"><button id="picLock" disabled>Зафиксировать</button><button id="picRemove" disabled>Удалить картинку</button></div>
+      <div class="lab">Нижний слой изображения <i id="picFileName">image.png</i></div>
+      <button id="picLock" disabled>Зафиксировать</button>
     </div>
 
     <div class="grp">
@@ -162,7 +150,7 @@
     <hr>
     <div class="row"><button class="pri" id="save">Сохранить</button><button id="load">Загрузить</button></div>
     <div class="row"><button id="exp">Экспорт JSON</button><button id="imp">Импорт JSON</button></div>
-    <div class="row"><button id="reset">Сбросить посадку</button><button id="wipe">Удалить всё</button></div>
+    <div class="row"><button id="reset">Сбросить посадку</button><button id="wipe">Стереть настройки</button></div>
     <input type="file" id="impFile" accept=".json,application/json" hidden>
 
     <p class="hint">
@@ -178,21 +166,57 @@
 <script type="module">
 import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
 
-const KEY = 'svg-overlay-v1';
+const KEY = 'svg-overlay-v5';
 const $ = s => document.querySelector(s);
+const DEFAULT_PLACEMENT = {
+  lng: -113.99383332091087,
+  lat: 46.86978112202587,
+  widthM: 384.4,
+  rot: -1.2000000000000455,
+  opacity: 1,
+  aspect: 1,
+  svgText: null,
+  fileName: 'test.svg',
+  layers: {
+    Detail_6_: true,
+    A1: true,
+    A2: true,
+    Level_1: true,
+    Level_2: true,
+    Level_3: true,
+    Level_4: true
+  },
+  rasterSize: 4096,
+  picture: {
+    dataUrl: null,
+    fileName: 'image.png',
+    lng: -113.9964393293445,
+    lat: 46.86674812733355,
+    widthM: 425,
+    rot: -3.6000000000000227,
+    opacity: 0.79,
+    aspect: 0.7232267037552156,
+    locked: false
+  },
+  active: 'picture',
+  view: {
+    center: [-113.99549279007158, 46.86668364922744],
+    zoom: 16.341227033584037,
+    bearing: 0,
+    pitch: 0
+  },
+  base: 'sat'
+};
+
 function emptyPicture(){
-  return { dataUrl:null, fileName:null, lng:37.6175, lat:55.7520, widthM:500,
-    rot:0, opacity:.8, aspect:1, locked:false };
+  return { ...DEFAULT_PLACEMENT.picture };
 }
 
 const S = {
-  lng: 37.6175, lat: 55.7520,
-  widthM: 500, rot: 0, opacity: .8, aspect: 1,
-  svgText: null, fileName: null,
-  layers: {}, rasterSize: 4096,
-  picture: emptyPicture(), active: 'svg',
-  view: { center:[37.6175,55.7520], zoom: 15, bearing: 0, pitch: 0 },
-  base: 'osm'
+  ...DEFAULT_PLACEMENT,
+  layers: { ...DEFAULT_PLACEMENT.layers },
+  picture: emptyPicture(),
+  view: { ...DEFAULT_PLACEMENT.view, center:[...DEFAULT_PLACEMENT.view.center] }
 };
 let imgUrl = null, ready = false, picReady = false, renderSeq = 0;
 
@@ -360,38 +384,11 @@ async function loadPicture(dataUrl, name, preservePlacement = false, activate = 
   if(activate) S.active = 'picture';
   syncUI(); refresh();
 }
-function readPicture(file){
-  const reader = new FileReader();
-  reader.onload = () => loadPicture(reader.result, file.name).catch(() => alert('Не удалось открыть изображение.'));
-  reader.onerror = () => alert('Не удалось прочитать файл изображения.');
-  reader.readAsDataURL(file);
-}
-function removePicture(){
-  if(picReady){ map.removeLayer('pic'); map.removeSource('pic'); picReady = false; }
-  S.picture = emptyPicture(); S.active = 'svg';
-  $('#picFile').value = ''; $('#picFileName').textContent = 'не выбран';
-  syncUI(); refresh();
-}
-$('#picPick').onclick = () => $('#picFile').click();
-$('#picFile').onchange = e => { const f = e.target.files[0]; if(f) readPicture(f); };
-$('#picRemove').onclick = () => { if(confirm('Убрать картинку с карты?')) removePicture(); };
 $('#picLock').onclick = () => {
   if(!picReady) return;
   S.picture.locked = !S.picture.locked;
   syncUI(); scheduleSave();
 };
-
-/* ---------- выбор файла ---------- */
-$('#drop').onclick = () => $('#file').click();
-$('#file').onchange = e => { const f = e.target.files[0]; if(f) f.text().then(t=>loadSvg(t, f.name)); };
-['dragenter','dragover'].forEach(ev => document.addEventListener(ev, e=>{ e.preventDefault(); document.body.classList.add('dragover'); }));
-['dragleave','drop'].forEach(ev => document.addEventListener(ev, e=>{ e.preventDefault(); if(ev==='drop'||e.target===document.documentElement) document.body.classList.remove('dragover'); }));
-document.addEventListener('drop', e => {
-  const f = e.dataTransfer.files[0];
-  if(!f) return;
-  if(/svg/.test(f.type + f.name)) f.text().then(t=>loadSvg(t, f.name));
-  else if(/^image\//.test(f.type)) readPicture(f);
-});
 
 /* ---------- слайдеры ---------- */
 const MINW = 1, MAXW = 200000;                       // 1 м … 200 км, логарифмически
@@ -414,7 +411,6 @@ function syncUI(){
   $('#editPic').setAttribute('aria-pressed', S.active === 'picture');
   $('#editPic').disabled = !picReady;
   $('#picLock').disabled = !picReady;
-  $('#picRemove').disabled = !picReady;
   $('#picLock').textContent = S.picture.locked ? 'Разблокировать' : 'Зафиксировать';
   $('#picLock').classList.toggle('locked', S.picture.locked);
   for(const id of ['w','wNum','r','rNum','ll']) $('#'+id).disabled = locked;
@@ -519,7 +515,12 @@ function scheduleSave(){ clearTimeout(t); t = setTimeout(save, 600); }
 function snapshot(){
   const c = map.getCenter();
   S.view = { center:[c.lng, c.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
-  return S;
+  return {
+    ...S,
+    svgText: null,
+    fileName: 'test.svg',
+    picture: { ...S.picture, dataUrl: null, fileName: 'image.png' }
+  };
 }
 function save(){
   try { localStorage.setItem(KEY, JSON.stringify(snapshot())); return true; }
@@ -529,15 +530,13 @@ function apply(d){
   const restoredPicture = { ...emptyPicture(), ...(d.picture || {}) };
   Object.assign(S, d);
   S.picture = restoredPicture;
-  if(S.active === 'picture' && !S.picture.dataUrl) S.active = 'svg';
+  S.svgText = null; S.fileName = 'test.svg';
+  S.picture.dataUrl = null; S.picture.fileName = 'image.png';
   map.jumpTo({ center: S.view.center, zoom: S.view.zoom, bearing: S.view.bearing||0, pitch: S.view.pitch||0 });
   setBase(S.base || 'osm');
   syncUI();
   if(ready) map.setPaintProperty('ov','raster-opacity', S.opacity);
-  if(S.picture.dataUrl) loadPicture(S.picture.dataUrl, S.picture.fileName, true, false)
-    .catch(() => alert('Сохранённую картинку не удалось восстановить.'));
-  else if(picReady){ map.removeLayer('pic'); map.removeSource('pic'); picReady = false; }
-  if(S.svgText) loadSvg(S.svgText, S.fileName, true); else refresh();
+  loadFixedAssets(true);
 }
 $('#save').onclick = () => {
   if(!save()){ alert('Не хватило места в браузере для сохранения картинки. Попробуйте файл меньшего размера.'); return; }
@@ -572,7 +571,7 @@ $('#reset').onclick = () => {
   syncUI(); refresh();
 };
 $('#wipe').onclick = () => {
-  if(!confirm('Убрать SVG, картинку и стереть сохранённые параметры?')) return;
+  if(!confirm('Стереть сохранённые параметры и вернуть исходное положение?')) return;
   if(ready){ map.removeLayer('ov'); map.removeSource('ov'); ready = false; }
   if(picReady){ map.removeLayer('pic'); map.removeSource('pic'); picReady = false; }
   imgUrl = null; S.svgText = null; S.fileName = null;
@@ -580,28 +579,46 @@ $('#wipe').onclick = () => {
   S.widthM = 500; S.rot = 0; S.opacity = .8;
   const c = map.getCenter(); S.lng = c.lng; S.lat = c.lat;
   localStorage.removeItem(KEY);
-  $('#fileName').textContent = 'файл не выбран';
-  $('#picFileName').textContent = 'не выбран'; $('#picFile').value = '';
-  $('#layers').innerHTML = '<div class="empty">Загрузите SVG</div>';
+  $('#fileName').textContent = 'test.svg';
+  $('#picFileName').textContent = 'image.png';
+  $('#layers').innerHTML = '<div class="empty">Загрузка test.svg…</div>';
   $('#layerCount').textContent = '—'; $('#renderInfo').textContent = '4096 px';
-  $('#file').value = '';
   syncUI(); paintStatus();
+  loadDefaultPlacement();
 };
 
 /* ---------- старт ---------- */
-map.on('load', () => {
+async function loadFixedAssets(preservePlacement){
+  try {
+    const response = await fetch('test.svg', { cache:'no-store' });
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    const svgText = await response.text();
+    await loadPicture('image.png', 'image.png', preservePlacement, false);
+    await loadSvg(svgText, 'test.svg', preservePlacement);
+  } catch(err) {
+    console.error('Не удалось открыть test.svg или image.png:', err);
+    alert('Не удалось открыть test.svg или image.png. Запустите index.html через локальный веб-сервер.');
+  }
+}
+
+function loadDefaultPlacement(){
+  apply(DEFAULT_PLACEMENT);
+}
+
+function initialize(){
   const raw = localStorage.getItem(KEY);
   if(raw){
     try {
       const saved = JSON.parse(raw);
       apply(saved);
-      if(!saved.picture?.dataUrl) loadPicture('image.png', 'image.png').catch(()=>{});
       return;
     } catch(err){}
   }
-  syncUI(); paintStatus();
-  loadPicture('image.png', 'image.png').catch(()=>{});
-});
+  loadDefaultPlacement();
+}
+
+if(map.isStyleLoaded()) initialize();
+else map.once('style.load', initialize);
 </script>
 </body>
 </html>

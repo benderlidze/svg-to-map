@@ -1,0 +1,42 @@
+{
+  "lng": -113.99383332091087,
+  "lat": 46.86978112202587,
+  "widthM": 384.4,
+  "rot": -1.2000000000000455,
+  "opacity": 1,
+  "aspect": 1,
+  "svgText": null,
+  "fileName": "test.svg",
+  "layers": {
+    "Detail_6_": false,
+    "A1": false,
+    "A2": false,
+    "Level_1": false,
+    "Level_2": false,
+    "Level_3": false,
+    "Level_4": false
+  },
+  "rasterSize": 4096,
+  "picture": {
+    "dataUrl": null,
+    "fileName": "image.png",
+    "lng": -113.9964349479367,
+    "lat": 46.86673165155881,
+    "widthM": 425,
+    "rot": -3.6000000000000227,
+    "opacity": 0.8,
+    "aspect": 0.7232267037552156,
+    "locked": false
+  },
+  "active": "picture",
+  "view": {
+    "center": [
+      -113.99668875581114,
+      46.866954770734424
+    ],
+    "zoom": 16.94687578585659,
+    "bearing": 0,
+    "pitch": 0
+  },
+  "base": "sat"
+}
