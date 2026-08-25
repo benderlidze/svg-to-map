@@ -95,24 +95,26 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-g
 /* ---------- placement ---------- */
 const SVG_URL = 'test.svg';
 const P = {
-  lng: -113.99601157125426,
-  lat: 46.867051325345415,
-  widthM: 405.608229433247,
-  rot: 0,
+  lng: -113.99610129582933,
+  lat: 46.86701898295087,
+  widthM: 384.4,
+  rot: -1.2000000000000455,
   aspect: 1,
   opacity: 1,
   layers: {},
   rasterSize: 4096
 };
-const VIEW = { center: [-113.9954430738494, 46.8661703787954], zoom: 16.957822407143677, bearing: 0, pitch: 0 };
-let savedPicture = null;
-try { savedPicture = JSON.parse(localStorage.getItem('svg-overlay-v1') || 'null')?.picture || null; } catch(err){}
+const VIEW = { center: [-113.99659435987695, 46.867923973708145], zoom: 16.654998031007647, bearing: 0, pitch: 0 };
 const PIC = {
-  dataUrl:'image.png', lng:VIEW.center[0], lat:VIEW.center[1], widthM:500,
-  rot:0, opacity:.8, aspect:1040/1438,
-  ...(savedPicture || {})
+  dataUrl:'image.png',
+  lng:-113.99645719132083,
+  lat:46.866721689803654,
+  widthM:421.7,
+  rot:-3.8999999999999773,
+  opacity:.69,
+  aspect:.7232267037552156,
+  locked:true
 };
-if(!PIC.dataUrl) PIC.dataUrl = 'image.png';
 
 /* ---------- base maps ---------- */
 const RASTER = {
