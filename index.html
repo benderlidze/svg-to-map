@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/maplibre-geoman-free@0.9.1/dist/maplibre-geoman.css">
 <title>SVG overlay → карта</title>
 
 <style>
@@ -39,9 +40,11 @@
   .lab i{font-style:normal;color:var(--ink);font-variant-numeric:tabular-nums;
         font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
   input[type=range]{width:100%;accent-color:var(--acc);height:18px}
-  input[type=text],input[type=number]{
+  input[type=text],input[type=number],textarea{
     width:100%;background:#0b1017;border:1px solid var(--line);border-radius:6px;
     color:var(--ink);padding:6px 8px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  textarea{min-height:94px;resize:vertical;line-height:1.45}
+  #allGeoJson{min-height:210px;white-space:pre;tab-size:2}
   select{
     width:100%;background:#0b1017;border:1px solid var(--line);border-radius:6px;
     color:var(--ink);padding:6px 8px;font-size:12px}
@@ -98,6 +101,7 @@
         <button id="editSvg" aria-pressed="true">SVG</button>
         <button id="editPic" aria-pressed="false">Картинку</button>
       </div>
+      <button id="lockAll">Зафиксировать всё</button>
     </div>
 
     <div class="grp">
@@ -121,6 +125,21 @@
       <div class="lab">Слои SVG <i id="layerCount">—</i></div>
       <div class="row"><button id="layersAll">Все</button><button id="layersNone">Скрыть все</button></div>
       <div id="layers" class="layers"><div class="empty">Загрузите SVG</div></div>
+    </div>
+
+    <div class="grp">
+      <div class="lab">Свойства полигона <i id="featureId">не выбран</i></div>
+      <button class="pri" id="drawPolygon" aria-pressed="false" disabled>Рисовать полигон</button>
+      <textarea id="featureProps" spellcheck="false" placeholder='{"name":"Участок", "type":"building"}' disabled></textarea>
+      <div class="row"><button id="saveProps" disabled>Сохранить props</button><button id="exportGeoJson" disabled>Скачать GeoJSON</button></div>
+      <div class="hint">Нарисуйте или нажмите на полигон. <kbd>Shift</kbd> при постановке вершины — угол, кратный 90°. Свойства задаются в формате JSON.</div>
+    </div>
+
+    <div class="grp">
+      <div class="lab">Весь GeoJSON <i id="geoJsonCount">0 фигур</i></div>
+      <textarea id="allGeoJson" readonly spellcheck="false" aria-label="Весь текущий GeoJSON"></textarea>
+      <button id="copyGeoJson" disabled>Копировать GeoJSON</button>
+      <div class="hint">Поле обновляется во время рисования. Незавершённая фигура помечается свойством <code>"__draft": true</code>.</div>
     </div>
 
     <div class="grp">
@@ -163,10 +182,19 @@
   </div>
 </div>
 
+<script type="importmap">
+{
+  "imports": {
+    "maplibre-gl": "https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs"
+  }
+}
+</script>
 <script type="module">
-import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
+import * as maplibregl from 'maplibre-gl';
+import { Geoman } from 'https://esm.sh/@geoman-io/maplibre-geoman-free@0.9.1?external=maplibre-gl';
 
 const KEY = 'svg-overlay-v6';
+const GM_KEY = 'svg-overlay-polygons-v1';
 const $ = s => document.querySelector(s);
 const DEFAULT_PLACEMENT = {
   lng: -113.99607348716607,
@@ -175,6 +203,7 @@ const DEFAULT_PLACEMENT = {
   rot: -0.6000000000000227,
   opacity: 1,
   aspect: 1,
+  locked: false,
   svgText: null,
   fileName: 'test.svg',
   layers: {
@@ -240,13 +269,41 @@ const map = new maplibregl.Map({
   },
   center: S.view.center, zoom: S.view.zoom, maxZoom: 22
 });
+map.boxZoom.disable();
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-left');
 map.addControl(new maplibregl.ScaleControl({maxWidth:120, unit:'metric'}), 'bottom-right');
+
+const geoman = new Geoman(map, {
+  settings: {
+    controlsPosition: 'top-left',
+    controlsCollapsible: true,
+    controlsUiEnabledByDefault: false,
+    snapDistance: 20
+  },
+  controls: {
+    draw: {
+      polygon: { title:'Рисовать полигон', uiEnabled:true }
+    },
+    edit: {
+      change: { title:'Редактировать вершины', uiEnabled:true },
+      drag: { title:'Перемещать полигоны', uiEnabled:true },
+      delete: { title:'Удалять полигоны', uiEnabled:true }
+    },
+    helper: {
+      snapping: { title:'Привязка к вершинам и рёбрам', uiEnabled:true, active:true }
+    }
+  }
+});
+let selectedFeature = null, geomanInteracting = false, geomanReady = false, polygonDrawing = false;
 
 /* ---------- геометрия ---------- */
 function placement(){ return S.active === 'picture' ? S.picture : S; }
 function activeReady(){ return S.active === 'picture' ? picReady : ready; }
-function activeLocked(){ return S.active === 'picture' && S.picture.locked; }
+function activeLocked(){ return S.active === 'picture' ? S.picture.locked : !!S.locked; }
+function firstGeomanLayerId(){
+  return map.getStyle().layers?.find(layer =>
+    String(layer.id).startsWith('gm_') || String(layer.source || '').startsWith('gm_'))?.id;
+}
 function corners(p = S){
   const wm = p.widthM, hm = p.widthM * p.aspect;
   const th = p.rot * Math.PI/180, c = Math.cos(th), s = Math.sin(th);
@@ -345,7 +402,8 @@ async function loadSvg(text, name, preserveLayers = false){
   if(!ready){
     map.addSource('ov', { type:'image', url: imgUrl, coordinates: corners() });
     map.addLayer({ id:'ov', type:'raster', source:'ov',
-      paint:{ 'raster-opacity': S.opacity, 'raster-fade-duration': 0, 'raster-resampling':'linear' } });
+      paint:{ 'raster-opacity': S.opacity, 'raster-fade-duration': 0, 'raster-resampling':'linear' } },
+      firstGeomanLayerId());
     ready = true;
   } else {
     map.getSource('ov').updateImage({ url: imgUrl, coordinates: corners() });
@@ -375,7 +433,7 @@ async function loadPicture(dataUrl, name, preservePlacement = false, activate = 
     map.addSource('pic', { type:'image', url:dataUrl, coordinates:corners(p) });
     const layer = { id:'pic', type:'raster', source:'pic',
       paint:{ 'raster-opacity':p.opacity, 'raster-fade-duration':0, 'raster-resampling':'linear' } };
-    map.addLayer(layer, map.getLayer('ov') ? 'ov' : undefined);
+    map.addLayer(layer, map.getLayer('ov') ? 'ov' : firstGeomanLayerId());
     picReady = true;
   } else {
     map.getSource('pic').updateImage({ url:dataUrl, coordinates:corners(p) });
@@ -389,6 +447,186 @@ $('#picLock').onclick = () => {
   S.picture.locked = !S.picture.locked;
   syncUI(); scheduleSave();
 };
+$('#lockAll').onclick = () => {
+  const lock = !(S.locked && S.picture.locked);
+  S.locked = lock;
+  S.picture.locked = lock;
+  syncUI(); scheduleSave();
+};
+
+/* ---------- полигоны MapLibre-Geoman ---------- */
+function customProperties(feature){
+  const properties = feature?.getGeoJson?.().properties || {};
+  return Object.fromEntries(Object.entries(properties).filter(([key]) =>
+    key !== '__gm_id' && key !== 'shape' && !key.startsWith('gm_')));
+}
+function selectFeature(feature){
+  selectedFeature = feature || null;
+  $('#featureId').textContent = selectedFeature ? String(selectedFeature.id) : 'не выбран';
+  $('#featureProps').disabled = !selectedFeature;
+  $('#saveProps').disabled = !selectedFeature;
+  $('#featureProps').value = selectedFeature
+    ? JSON.stringify(customProperties(selectedFeature), null, 2)
+    : '';
+}
+function draftGeoJson(){
+  if(!polygonDrawing) return null;
+  const drawer = polygonLineDrawer();
+  const live = drawer?.featureData?.getGeoJson?.();
+  if(live?.geometry){
+    return {
+      type:'Feature',
+      properties:{ ...(live.properties || {}), __draft:true },
+      geometry:live.geometry
+    };
+  }
+  const coordinates = drawer?.shapeLngLats;
+  if(!coordinates?.length) return null;
+  return {
+    type:'Feature',
+    properties:{ shape:'polygon', __draft:true },
+    geometry:coordinates.length === 1
+      ? { type:'Point', coordinates:coordinates[0] }
+      : { type:'LineString', coordinates:[...coordinates] }
+  };
+}
+function currentGeoJson(){
+  const stored = geomanReady
+    ? geoman.features.exportGeoJson()
+    : { type:'FeatureCollection', features:[] };
+  const collection = stored?.type === 'FeatureCollection'
+    ? { ...stored, features:[...(stored.features || [])] }
+    : { type:'FeatureCollection', features:stored ? [stored] : [] };
+  const draft = draftGeoJson();
+  if(draft) collection.features.push(draft);
+  return { collection, draft:!!draft };
+}
+let geoJsonFrame = 0;
+function updateGeoJsonView(){
+  geoJsonFrame = 0;
+  const { collection, draft } = currentGeoJson();
+  const savedCount = collection.features.length - (draft ? 1 : 0);
+  $('#allGeoJson').value = JSON.stringify(collection, null, 2);
+  $('#geoJsonCount').textContent = `${savedCount} ${savedCount === 1 ? 'фигура' : 'фигур'}${draft ? ' + черновик' : ''}`;
+  $('#copyGeoJson').disabled = !geomanReady;
+}
+function scheduleGeoJsonView(){
+  if(!geoJsonFrame) geoJsonFrame = requestAnimationFrame(updateGeoJsonView);
+}
+function saveDrawings(){
+  try {
+    localStorage.setItem(GM_KEY, JSON.stringify(geoman.features.exportGeoJson()));
+  } catch(err) {
+    console.warn('Не удалось сохранить полигоны:', err);
+  }
+  scheduleGeoJsonView();
+}
+$('#copyGeoJson').onclick = async () => {
+  updateGeoJsonView();
+  try { await navigator.clipboard.writeText($('#allGeoJson').value); }
+  catch { $('#allGeoJson').select(); document.execCommand('copy'); }
+};
+$('#saveProps').onclick = async () => {
+  if(!selectedFeature) return;
+  try {
+    const next = JSON.parse($('#featureProps').value || '{}');
+    if(!next || Array.isArray(next) || typeof next !== 'object') throw new Error('Нужен JSON-объект.');
+    const update = Object.fromEntries(Object.keys(customProperties(selectedFeature)).map(key => [key, undefined]));
+    Object.assign(update, next);
+    await selectedFeature.updateProperties(update);
+    selectFeature(selectedFeature);
+    saveDrawings();
+  } catch(err) {
+    alert(`Не удалось сохранить свойства: ${err.message}`);
+  }
+};
+$('#exportGeoJson').onclick = () => {
+  if(!geomanReady) return;
+  const blob = new Blob([JSON.stringify(geoman.features.exportGeoJson(), null, 2)], {type:'application/geo+json'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob); link.download = 'polygons.geojson'; link.click();
+  URL.revokeObjectURL(link.href);
+};
+
+for(const eventName of ['gm:globaldrawmodetoggled','gm:globaleditmodetoggled','gm:globaldragmodetoggled','gm:globalremovemodetoggled']){
+  map.on(eventName, event => { geomanInteracting = !!event.enabled; });
+}
+$('#drawPolygon').onclick = () => geoman.options.toggleMode('draw', 'polygon');
+map.on('gm:globaldrawmodetoggled', event => {
+  polygonDrawing = !!event.enabled;
+  $('#drawPolygon').setAttribute('aria-pressed', !!event.enabled);
+  $('#drawPolygon').textContent = event.enabled ? 'Завершить рисование' : 'Рисовать полигон';
+  scheduleGeoJsonView();
+});
+
+function polygonLineDrawer(){
+  return geoman.actionInstances?.draw__polygon?.lineDrawer || null;
+}
+function orthogonalLngLat(point){
+  const coordinates = polygonLineDrawer()?.shapeLngLats;
+  if(!coordinates || coordinates.length < 2) return null;
+  const a = map.project(coordinates[coordinates.length - 2]);
+  const b = map.project(coordinates[coordinates.length - 1]);
+  const dx = point.x - b.x, dy = point.y - b.y;
+  const distance = Math.hypot(dx, dy);
+  if(distance < 1) return coordinates[coordinates.length - 1];
+  const baseAngle = Math.atan2(b.y - a.y, b.x - a.x);
+  const cursorAngle = Math.atan2(dy, dx);
+  const delta = Math.atan2(Math.sin(cursorAngle - baseAngle), Math.cos(cursorAngle - baseAngle));
+  const angle = baseAngle + Math.round(delta / (Math.PI / 2)) * (Math.PI / 2);
+  return map.unproject([b.x + Math.cos(angle) * distance, b.y + Math.sin(angle) * distance]).toArray();
+}
+map.on('mousemove', event => {
+  if(geomanInteracting) scheduleGeoJsonView();
+  if(!polygonDrawing || !event.originalEvent.shiftKey) return;
+  const coordinate = orthogonalLngLat(event.point);
+  const marker = geoman.markerPointer.marker;
+  const drawer = polygonLineDrawer();
+  if(!coordinate || !marker || !drawer) return;
+  marker.setLngLat(coordinate);
+  Promise.resolve(drawer.updateFeatureSource()).catch(() => {});
+  scheduleGeoJsonView();
+});
+map.getCanvas().addEventListener('click', event => {
+  if(!polygonDrawing) return;
+  scheduleGeoJsonView();
+  if(!event.shiftKey) return;
+  const rect = map.getCanvas().getBoundingClientRect();
+  const coordinate = orthogonalLngLat({ x:event.clientX - rect.left, y:event.clientY - rect.top });
+  if(coordinate && geoman.markerPointer.marker) geoman.markerPointer.marker.setLngLat(coordinate);
+}, true);
+map.on('gm:create', event => { selectFeature(event.feature); saveDrawings(); });
+map.on('gm:editstart', event => selectFeature(event.feature));
+map.on('gm:dragstart', event => selectFeature(event.feature));
+map.on('gm:editend', event => { if(event.feature) selectFeature(event.feature); saveDrawings(); });
+map.on('gm:dragend', event => { if(event.feature) selectFeature(event.feature); saveDrawings(); });
+map.on('gm:remove', event => {
+  if(selectedFeature && event.feature?.id === selectedFeature.id) selectFeature(null);
+  saveDrawings();
+});
+map.on('gm:loaded', async () => {
+  geomanReady = true;
+  $('#drawPolygon').disabled = false;
+  $('#exportGeoJson').disabled = false;
+  const raw = localStorage.getItem(GM_KEY);
+  if(raw){
+    try { await geoman.features.importGeoJson(JSON.parse(raw)); }
+    catch(err){ console.warn('Не удалось восстановить полигоны:', err); }
+  }
+  for(const layer of map.getStyle().layers || []){
+    if(String(layer.id).startsWith('gm_') || String(layer.source || '').startsWith('gm_')) map.moveLayer(layer.id);
+  }
+  updateGeoJsonView();
+});
+map.on('click', event => {
+  if(!geomanReady || geomanInteracting) return;
+  const p = event.point;
+  const hits = geoman.features.getFeaturesByScreenBounds({
+    bounds: [[p.x - 5, p.y - 5], [p.x + 5, p.y + 5]],
+    sourceNames: ['gm_main']
+  });
+  selectFeature(hits?.length ? hits[hits.length - 1] : null);
+});
 
 /* ---------- слайдеры ---------- */
 const MINW = 1, MAXW = 200000;                       // 1 м … 200 км, логарифмически
@@ -413,6 +651,9 @@ function syncUI(){
   $('#picLock').disabled = !picReady;
   $('#picLock').textContent = S.picture.locked ? 'Разблокировать' : 'Зафиксировать';
   $('#picLock').classList.toggle('locked', S.picture.locked);
+  const allLocked = !!S.locked && !!S.picture.locked;
+  $('#lockAll').textContent = allLocked ? 'Разблокировать всё' : 'Зафиксировать всё';
+  $('#lockAll').classList.toggle('locked', allLocked);
   for(const id of ['w','wNum','r','rNum','ll']) $('#'+id).disabled = locked;
 }
 function setActive(kind){
@@ -472,7 +713,7 @@ function inQuad(pt){
   return hit;
 }
 map.on('mousedown', e => {
-  if(activeLocked() || !inQuad(e.point)) return;
+  if(geomanInteracting || activeLocked() || !inQuad(e.point)) return;
   e.preventDefault();
   const p = placement();
   drag = { start: e.lngLat, lng:p.lng, lat:p.lat, target:p };
@@ -494,12 +735,12 @@ window.addEventListener('mouseup', () => {
 map.on('wheel', e => {
   const oe = e.originalEvent;
   const p = placement();
-  if(activeLocked()) return;
+  if(geomanInteracting || activeLocked()) return;
   if(oe.shiftKey){ e.preventDefault(); setR(p.rot + Math.sign(oe.deltaY) * 1); }
   else if(oe.altKey){ e.preventDefault(); setW(p.widthM * (oe.deltaY > 0 ? 0.97 : 1/0.97)); }
 });
 window.addEventListener('keydown', e => {
-  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || !activeReady() || activeLocked()) return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || geomanInteracting || !activeReady() || activeLocked()) return;
   const p = placement(), step = p.widthM * (e.shiftKey ? 0.1 : 0.01);
   const mLat = 111320, mLng = 111320 * Math.cos(p.lat*Math.PI/180);
   const k = { ArrowUp:[0,1], ArrowDown:[0,-1], ArrowLeft:[-1,0], ArrowRight:[1,0] }[e.key];
@@ -562,10 +803,14 @@ $('#impFile').onchange = e => {
 
 /* ---------- сброс ---------- */
 $('#reset').onclick = () => {
-  if(activeLocked()) return;
-  const c = map.getCenter(), p = placement();
-  p.lng = c.lng; p.lat = c.lat;
-  p.widthM = 500; p.rot = 0; p.opacity = .8;
+  const p = placement();
+  const defaults = S.active === 'picture' ? DEFAULT_PLACEMENT.picture : DEFAULT_PLACEMENT;
+  p.lng = defaults.lng;
+  p.lat = defaults.lat;
+  p.widthM = defaults.widthM;
+  p.rot = defaults.rot;
+  p.opacity = defaults.opacity;
+  if(S.active === 'picture') p.locked = defaults.locked;
   const layer = S.active === 'picture' ? 'pic' : 'ov';
   if(activeReady()) map.setPaintProperty(layer,'raster-opacity', p.opacity);
   syncUI(); refresh();
