@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
+<title>Map</title>
+<style>
+  :root{ --panel:rgba(21,27,35,.94); --line:#2a333f; --ink:#e6edf3; --dim:#8b98a5; --acc:#4aa3ff }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font:13px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  #map{position:absolute;inset:0;background:#0d1117}
+
+  #ui{
+    position:absolute;top:12px;right:12px;z-index:5;width:200px;
+    background:var(--panel);backdrop-filter:blur(8px);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;padding:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:10px
+  }
+  .lab{color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+       display:flex;justify-content:space-between;align-items:baseline}
+  .lab i{font-style:normal;color:var(--ink);font-family:ui-monospace,Menlo,monospace}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .seg button{
+    background:#1d2632;border:1px solid var(--line);color:var(--ink);
+    border-radius:6px;padding:7px 4px;font-size:12px;cursor:pointer}
+  .seg button:hover{background:#26313f}
+  .seg button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#04101f;font-weight:600}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+  input[type=range]{width:100%;accent-color:var(--acc)}
+
+  #msg{
+    position:absolute;left:12px;bottom:28px;z-index:5;max-width:420px;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    color:var(--ink);padding:10px 12px;display:none}
+  #msg button{margin-top:8px;background:#1d2632;border:1px solid var(--line);color:var(--ink);
+    border-radius:6px;padding:6px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="ui">
+  <div>
+    <div class="lab">Base map</div>
+    <div class="seg" style="margin-top:6px">
+      <button data-b="sat" aria-pressed="true">Satellite</button>
+      <button data-b="streets" aria-pressed="false">Streets</button>
+      <button data-b="light" aria-pressed="false">Light</button>
+      <button data-b="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <div>
+    <div class="lab">Overlay <i id="vO">100%</i></div>
+    <input type="range" id="o" min="0" max="100" value="100">
+  </div>
+</div>
+
+<div id="msg">
+  <div id="msgText"></div>
+  <button id="pick">Choose SVG file</button>
+  <input type="file" id="file" accept=".svg,image/svg+xml" hidden>
+</div>
+
+<script type="module">
+import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
+
+/* ---------- placement ---------- */
+const SVG_URL = 'test.svg';
+const P = {
+  lng: -113.99601157125426,
+  lat: 46.867051325345415,
+  widthM: 405.608229433247,
+  rot: 0,
+  aspect: 1,
+  opacity: 1
+};
+const VIEW = { center: [-113.9954430738494, 46.8661703787954], zoom: 16.957822407143677, bearing: 0, pitch: 0 };
+
+/* ---------- base maps ---------- */
+const RASTER = {
+  sat:     { tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+             maxzoom:19, attribution:'Esri, Maxar, Earthstar Geographics' },
+  streets: { tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+             maxzoom:19, attribution:'© OpenStreetMap contributors' },
+  light:   { tiles:['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png'],
+             maxzoom:20, attribution:'© OpenStreetMap contributors, © CARTO' },
+  dark:    { tiles:['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
+             maxzoom:20, attribution:'© OpenStreetMap contributors, © CARTO' }
+};
+const sources = {}, layers = [];
+for(const [id, s] of Object.entries(RASTER)){
+  sources[id] = { type:'raster', tileSize:256, ...s };
+  layers.push({ id, type:'raster', source:id, layout:{ visibility: id === 'sat' ? 'visible' : 'none' } });
+}
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: { version:8, sources, layers },
+  center: VIEW.center, zoom: VIEW.zoom, bearing: VIEW.bearing, pitch: VIEW.pitch,
+  maxZoom: 22
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch:true }), 'top-left');
+map.addControl(new maplibregl.ScaleControl({ maxWidth:120, unit:'metric' }), 'bottom-right');
+
+/* ---------- overlay geometry ---------- */
+function corners(){
+  const wm = P.widthM, hm = P.widthM * P.aspect;
+  const th = P.rot * Math.PI/180, c = Math.cos(th), s = Math.sin(th);
+  const mLat = 111320, mLng = 111320 * Math.cos(P.lat*Math.PI/180) || 1e-6;
+  return [[-wm/2,hm/2],[wm/2,hm/2],[wm/2,-hm/2],[-wm/2,-hm/2]].map(([x,y])=>[
+    P.lng + (x*c + y*s)/mLng,
+    P.lat + (-x*s + y*c)/mLat
+  ]);
+}
+
+/* ---------- SVG → raster ---------- */
+async function rasterize(text){
+  const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+  if(doc.querySelector('parsererror')) throw new Error('The SVG file could not be parsed.');
+  const svg = doc.documentElement;
+  const num = v => { const n = parseFloat(v); return (v && !/%$/.test(v.trim()) && isFinite(n) && n > 0) ? n : 0; };
+  let w = num(svg.getAttribute('width')), h = num(svg.getAttribute('height'));
+  const vb = (svg.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
+  if((!w || !h) && vb.length === 4 && vb[2] > 0 && vb[3] > 0){ w = vb[2]; h = vb[3]; }
+  if(!w || !h){ w = 1024; h = 1024; }
+  if(vb.length !== 4) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('width', w); svg.setAttribute('height', h);
+
+  const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+  const img = new Image();
+  await new Promise((ok, no) => {
+    img.onload = ok;
+    img.onerror = () => no(new Error('The SVG could not be rendered — external links or fonts inside the file usually cause this.'));
+    img.src = url;
+  });
+
+  const k = Math.min(2048/w, 2048/h, 4);
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(w*k));
+  cv.height = Math.max(1, Math.round(h*k));
+  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  return { url: cv.toDataURL('image/png'), aspect: h/w };
+}
+
+let added = false;
+async function showOverlay(text){
+  const { url, aspect } = await rasterize(text);
+  P.aspect = aspect;
+  if(added){
+    map.getSource('overlay').updateImage({ url, coordinates: corners() });
+  } else {
+    map.addSource('overlay', { type:'image', url, coordinates: corners() });
+    map.addLayer({ id:'overlay', type:'raster', source:'overlay',
+      paint:{ 'raster-opacity': P.opacity, 'raster-fade-duration': 0 } });
+    added = true;
+  }
+  hideMsg();
+}
+
+/* ---------- messages / manual file fallback ---------- */
+const msg = document.getElementById('msg');
+function showMsg(text){ document.getElementById('msgText').textContent = text; msg.style.display = 'block'; }
+function hideMsg(){ msg.style.display = 'none'; }
+document.getElementById('pick').onclick = () => document.getElementById('file').click();
+document.getElementById('file').onchange = e => {
+  const f = e.target.files[0];
+  if(f) f.text().then(showOverlay).catch(err => showMsg(err.message));
+};
+
+/* ---------- controls ---------- */
+document.querySelectorAll('.seg button').forEach(b => {
+  b.onclick = () => {
+    for(const id of Object.keys(RASTER)) map.setLayoutProperty(id, 'visibility', id === b.dataset.b ? 'visible' : 'none');
+    document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  };
+});
+document.getElementById('o').oninput = e => {
+  P.opacity = +e.target.value / 100;
+  document.getElementById('vO').textContent = e.target.value + '%';
+  if(added) map.setPaintProperty('overlay', 'raster-opacity', P.opacity);
+};
+
+/* ---------- start ---------- */
+map.on('load', async () => {
+  try {
+    const res = await fetch(SVG_URL);
+    if(!res.ok) throw new Error(`${SVG_URL} returned ${res.status}.`);
+    await showOverlay(await res.text());
+  } catch(err){
+    showMsg(`Could not load ${SVG_URL}: ${err.message} Put the file next to this page and serve it over http, or load it manually.`);
+  }
+});
+</script>
+</body>
+</html>
