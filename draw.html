@@ -73,14 +73,7 @@
   .seg button[aria-pressed=true]{background:var(--acc2);color:#04101f;font-weight:600}
   .layers{display:flex;flex-direction:column;gap:4px;max-height:190px;overflow:auto;
     background:#0b1017;border:1px solid var(--line);border-radius:6px;padding:5px}
-  .layer-node{display:flex;flex-direction:column;gap:2px}
-  .layer-line{display:flex;align-items:center;min-width:0}
-  .layer-toggle{flex:0 0 20px;width:20px;padding:2px 0;border:0;background:transparent;color:var(--dim)}
-  .layer-toggle:hover{background:#1d2632}
-  .layer-toggle:disabled{opacity:0;pointer-events:none}
-  .layer-children{display:flex;flex-direction:column;gap:2px;margin-left:10px;padding-left:8px;border-left:1px solid #2b3745}
-  .layer-node.folded>.layer-children{display:none}
-  .layer{display:flex;align-items:center;gap:7px;min-width:0;flex:1;padding:4px 5px;border-radius:4px;cursor:pointer}
+  .layer{display:flex;align-items:center;gap:7px;padding:4px 5px;border-radius:4px;cursor:pointer}
   .layer:hover{background:#151d27}
   .layer input{margin:0;accent-color:var(--acc2)}
   .layer span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -139,7 +132,7 @@
       <button class="pri" id="drawPolygon" aria-pressed="false" disabled>Рисовать полигон</button>
       <textarea id="featureProps" spellcheck="false" placeholder='{"name":"Участок", "type":"building"}' disabled></textarea>
       <div class="row"><button id="saveProps" disabled>Сохранить props</button><button id="exportGeoJson" disabled>Скачать GeoJSON</button></div>
-      <div class="hint">Нарисуйте или нажмите на полигон. <kbd>Shift</kbd> или <kbd>Ctrl</kbd> — следующий отрезок под углом, кратным 90°, к предыдущему. Свойства задаются в формате JSON.</div>
+      <div class="hint">Нарисуйте или нажмите на полигон. <kbd>Shift</kbd> при постановке вершины — угол, кратный 90°. Свойства задаются в формате JSON.</div>
     </div>
 
     <div class="grp">
@@ -255,7 +248,6 @@ const S = {
   view: { ...DEFAULT_PLACEMENT.view, center:[...DEFAULT_PLACEMENT.view.center] }
 };
 let imgUrl = null, ready = false, picReady = false, renderSeq = 0;
-const foldedSvgLayers = new Set();
 
 /* ---------- карта ---------- */
 const map = new maplibregl.Map({
@@ -333,7 +325,7 @@ const geoman = new Geoman(map, {
     }
   }
 });
-let selectedFeature = null, geomanInteracting = false, geomanReady = false;
+let selectedFeature = null, geomanInteracting = false, geomanReady = false, polygonDrawing = false;
 
 /* ---------- геометрия ---------- */
 function placement(){ return S.active === 'picture' ? S.picture : S; }
@@ -367,64 +359,28 @@ function paintStatus(){
 
 /* ---------- SVG → растр ---------- */
 function svgLayers(svg){
-  const groups = [...svg.querySelectorAll('g')].filter(el =>
-    el.id || el.getAttribute('inkscape:label') || el.getAttribute('data-name'));
-  const nodes = groups.map((el, i) => ({
+  const allGroups = [...svg.querySelectorAll('g')];
+  const explicit = allGroups.filter(g => g.getAttribute('inkscape:groupmode') === 'layer');
+  const groups = explicit.length ? explicit : [...svg.children].filter(el => el.localName === 'g' && el.id);
+  return groups.map((el, i) => ({
     el,
     id: el.id || `layer-${i + 1}`,
     name: el.getAttribute('inkscape:label') || el.getAttribute('data-name') || el.id || `Слой ${i + 1}`,
-    visible: el.getAttribute('display') !== 'none' && !/display\s*:\s*none/i.test(el.getAttribute('style') || ''),
-    parent:null,
-    children:[]
+    visible: el.getAttribute('display') !== 'none' && !/display\s*:\s*none/i.test(el.getAttribute('style') || '')
   }));
-  const byElement = new Map(nodes.map(node => [node.el, node]));
-  for(const node of nodes){
-    let parent = node.el.parentElement;
-    while(parent && !byElement.has(parent)) parent = parent.parentElement;
-    node.parent = byElement.get(parent) || null;
-    if(node.parent) node.parent.children.push(node);
-  }
-  return nodes;
 }
 function paintLayers(defs){
   const box = $('#layers');
   box.replaceChildren();
   $('#layerCount').textContent = defs.length ? `${defs.filter(d => S.layers[d.id]).length}/${defs.length}` : '0';
   if(!defs.length){ box.innerHTML = '<div class="empty">В SVG нет отдельных слоёв</div>'; return; }
-  const branch = node => [node, ...node.children.flatMap(branch)];
-  const renderNode = d => {
-    const wrapper = document.createElement('div'); wrapper.className = 'layer-node';
-    wrapper.classList.toggle('folded', foldedSvgLayers.has(d.id));
-    const line = document.createElement('div'); line.className = 'layer-line';
-    const toggle = document.createElement('button'); toggle.className = 'layer-toggle';
-    toggle.type = 'button'; toggle.disabled = !d.children.length;
-    toggle.textContent = d.children.length ? (foldedSvgLayers.has(d.id) ? '▸' : '▾') : '•';
-    toggle.title = foldedSvgLayers.has(d.id) ? 'Развернуть ветку' : 'Свернуть ветку';
-    toggle.onclick = () => {
-      if(foldedSvgLayers.has(d.id)) foldedSvgLayers.delete(d.id); else foldedSvgLayers.add(d.id);
-      paintLayers(defs);
-    };
+  for(const d of defs){
     const label = document.createElement('label'); label.className = 'layer'; label.title = d.name;
-    const input = document.createElement('input'); input.type = 'checkbox';
-    const descendants = branch(d);
-    const enabled = descendants.filter(node => S.layers[node.id]).length;
-    input.checked = enabled === descendants.length;
-    input.indeterminate = enabled > 0 && enabled < descendants.length;
+    const input = document.createElement('input'); input.type = 'checkbox'; input.checked = !!S.layers[d.id];
     const span = document.createElement('span'); span.textContent = d.name.replace(/_x26_/g, ' & ');
-    input.onchange = () => {
-      for(const node of descendants) S.layers[node.id] = input.checked;
-      if(input.checked) for(let parent = d.parent; parent; parent = parent.parent) S.layers[parent.id] = true;
-      rerenderSvg();
-    };
-    label.append(input, span); line.append(toggle, label); wrapper.append(line);
-    if(d.children.length){
-      const children = document.createElement('div'); children.className = 'layer-children';
-      for(const child of d.children) children.append(renderNode(child));
-      wrapper.append(children);
-    }
-    return wrapper;
+    input.onchange = () => { S.layers[d.id] = input.checked; rerenderSvg(); };
+    label.append(input, span); box.append(label);
   }
-  for(const root of defs.filter(d => !d.parent)) box.append(renderNode(root));
 }
 function maxTextureSize(){
   const gl = map.getCanvas().getContext('webgl2') || map.getCanvas().getContext('webgl');
@@ -545,7 +501,8 @@ function selectFeature(feature){
     : '';
 }
 function draftGeoJson(){
-  const drawer = activeLineDrawer();
+  if(!polygonDrawing) return null;
+  const drawer = polygonLineDrawer();
   const live = drawer?.featureData?.getGeoJson?.();
   if(live?.geometry){
     return {
@@ -627,96 +584,47 @@ for(const eventName of ['gm:globaldrawmodetoggled','gm:globaleditmodetoggled','g
 }
 $('#drawPolygon').onclick = () => geoman.options.toggleMode('draw', 'polygon');
 map.on('gm:globaldrawmodetoggled', event => {
+  polygonDrawing = !!event.enabled;
   $('#drawPolygon').setAttribute('aria-pressed', !!event.enabled);
   $('#drawPolygon').textContent = event.enabled ? 'Завершить рисование' : 'Рисовать полигон';
   scheduleGeoJsonView();
 });
 
-/* ---------- ортогональный режим: Shift / Ctrl ---------- */
-const ORTHO_STEP = Math.PI / 2;
-let orthoActive = false;        // модификатор зажат
-let pointerLngLat = null;       // последняя «сырая» позиция указателя
-
-const orthoModifier = event => !!(event && (event.shiftKey || event.ctrlKey || event.metaKey));
-const toLngLatArray = value => Array.isArray(value) ? value : [value.lng, value.lat];
-
-// Активный рисовальщик линии: полигон, линия или разрез.
-function activeLineDrawer(){
-  for(const action of Object.values(geoman.actionInstances || {})){
-    const drawer = action?.lineDrawer;
-    if(drawer?.shapeLngLats?.length) return drawer;
-  }
-  return null;
+function polygonLineDrawer(){
+  return geoman.actionInstances?.draw__polygon?.lineDrawer || null;
 }
-// Направление предыдущего отрезка; для самой первой вершины — оси экрана.
-function orthoBaseAngle(coordinates){
-  if(coordinates.length < 2) return 0;
+function orthogonalLngLat(point){
+  const coordinates = polygonLineDrawer()?.shapeLngLats;
+  if(!coordinates || coordinates.length < 2) return null;
   const a = map.project(coordinates[coordinates.length - 2]);
   const b = map.project(coordinates[coordinates.length - 1]);
-  return Math.hypot(b.x - a.x, b.y - a.y) < 1 ? 0 : Math.atan2(b.y - a.y, b.x - a.x);
+  const dx = point.x - b.x, dy = point.y - b.y;
+  const distance = Math.hypot(dx, dy);
+  if(distance < 1) return coordinates[coordinates.length - 1];
+  const baseAngle = Math.atan2(b.y - a.y, b.x - a.x);
+  const cursorAngle = Math.atan2(dy, dx);
+  const delta = Math.atan2(Math.sin(cursorAngle - baseAngle), Math.cos(cursorAngle - baseAngle));
+  const angle = baseAngle + Math.round(delta / (Math.PI / 2)) * (Math.PI / 2);
+  return map.unproject([b.x + Math.cos(angle) * distance, b.y + Math.sin(angle) * distance]).toArray();
 }
-// Проекция курсора на ближайшую ось, кратную 90° к предыдущему отрезку.
-function orthoLngLat(lngLat){
-  if(!orthoActive) return null;
-  const coordinates = activeLineDrawer()?.shapeLngLats;
-  if(!coordinates?.length) return null;
-  const anchor = map.project(coordinates[coordinates.length - 1]);
-  const cursor = map.project(lngLat);
-  const dx = cursor.x - anchor.x, dy = cursor.y - anchor.y;
-  if(Math.hypot(dx, dy) < 1) return null;
-  const base = orthoBaseAngle(coordinates);
-  const delta = Math.atan2(Math.sin(Math.atan2(dy, dx) - base), Math.cos(Math.atan2(dy, dx) - base));
-  const angle = base + Math.round(delta / ORTHO_STEP) * ORTHO_STEP;
-  const length = dx * Math.cos(angle) + dy * Math.sin(angle);
-  return map.unproject([anchor.x + Math.cos(angle) * length, anchor.y + Math.sin(angle) * length]).toArray();
-}
-
-// Ограничение навешивается на сам маркер-указатель: кто бы ни двигал его
-// (geoman, привязка к вершинам, наш код) — позиция всегда одна и та же.
-function patchPointerMarker(){
-  const marker = geoman.markerPointer.marker;
-  if(!marker || marker.__orthoPatched) return;
-  const setLngLat = marker.setLngLat.bind(marker);
-  marker.setLngLat = value => {
-    pointerLngLat = toLngLatArray(value);
-    setLngLat(orthoLngLat(pointerLngLat) || pointerLngLat);
-  };
-  marker.__orthoPatched = true;
-}
-const enablePointerMarker = geoman.markerPointer.enable.bind(geoman.markerPointer);
-geoman.markerPointer.enable = options => {
-  pointerLngLat = null;
-  const result = enablePointerMarker(options);
-  patchPointerMarker();
-  return result;
-};
-
-// Нажали/отпустили модификатор — пересчитываем превью, не дожидаясь движения мыши.
-function refreshOrthoPreview(){
-  const marker = geoman.markerPointer.marker;
-  if(!marker || !pointerLngLat) return;
-  marker.setLngLat(pointerLngLat);
-  const drawer = activeLineDrawer();
-  if(drawer) Promise.resolve(drawer.updateFeatureSource()).catch(() => {});
-  scheduleGeoJsonView();
-}
-function setOrthoActive(next){
-  if(next === orthoActive) return;
-  orthoActive = next;
-  refreshOrthoPreview();
-}
-for(const eventName of ['keydown','keyup']){
-  window.addEventListener(eventName, event => setOrthoActive(orthoModifier(event)));
-}
-window.addEventListener('blur', () => setOrthoActive(false));
-
 map.on('mousemove', event => {
   if(geomanInteracting) scheduleGeoJsonView();
-  setOrthoActive(orthoModifier(event.originalEvent));
+  if(!polygonDrawing || !event.originalEvent.shiftKey) return;
+  const coordinate = orthogonalLngLat(event.point);
+  const marker = geoman.markerPointer.marker;
+  const drawer = polygonLineDrawer();
+  if(!coordinate || !marker || !drawer) return;
+  marker.setLngLat(coordinate);
+  Promise.resolve(drawer.updateFeatureSource()).catch(() => {});
+  scheduleGeoJsonView();
 });
 map.getCanvas().addEventListener('click', event => {
-  setOrthoActive(orthoModifier(event));
-  if(activeLineDrawer()) scheduleGeoJsonView();
+  if(!polygonDrawing) return;
+  scheduleGeoJsonView();
+  if(!event.shiftKey) return;
+  const rect = map.getCanvas().getBoundingClientRect();
+  const coordinate = orthogonalLngLat({ x:event.clientX - rect.left, y:event.clientY - rect.top });
+  if(coordinate && geoman.markerPointer.marker) geoman.markerPointer.marker.setLngLat(coordinate);
 }, true);
 map.on('gm:create', event => { selectFeature(event.feature); saveDrawings(); });
 map.on('gm:editstart', event => selectFeature(event.feature));
