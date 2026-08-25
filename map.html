@@ -95,23 +95,31 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-g
 /* ---------- placement ---------- */
 const SVG_URL = 'test.svg';
 const P = {
-  lng: -113.99610129582933,
-  lat: 46.86701898295087,
-  widthM: 384.4,
-  rot: -1.2000000000000455,
+  lng: -113.99607348716607,
+  lat: 46.86704363356705,
+  widthM: 385,
+  rot: -0.6000000000000227,
   aspect: 1,
   opacity: 1,
-  layers: {},
+  layers: {
+    Detail_6_: true,
+    A1: true,
+    A2: true,
+    Level_1: true,
+    Level_2: true,
+    Level_3: true,
+    Level_4: true
+  },
   rasterSize: 4096
 };
-const VIEW = { center: [-113.99659435987695, 46.867923973708145], zoom: 16.654998031007647, bearing: 0, pitch: 0 };
+const VIEW = { center: [-113.9955788352861, 46.86662945269106], zoom: 17.552524538129347, bearing: 0, pitch: 0 };
 const PIC = {
   dataUrl:'image.png',
-  lng:-113.99645719132083,
-  lat:46.866721689803654,
-  widthM:421.7,
-  rot:-3.8999999999999773,
-  opacity:.69,
+  lng:-113.9964393293445,
+  lat:46.86674812733355,
+  widthM:425,
+  rot:-3.6000000000000227,
+  opacity:.79,
   aspect:.7232267037552156,
   locked:true
 };
@@ -297,16 +305,19 @@ document.getElementById('layersAll').onclick = () => setAllLayers(true);
 document.getElementById('layersNone').onclick = () => setAllLayers(false);
 
 /* ---------- start ---------- */
-map.on('load', async () => {
+async function initialize(){
   showPicture();
   try {
     const res = await fetch(SVG_URL);
     if(!res.ok) throw new Error(`${SVG_URL} returned ${res.status}.`);
-    await showOverlay(await res.text());
+    await showOverlay(await res.text(), true);
   } catch(err){
     showMsg(`Could not load ${SVG_URL}: ${err.message} Put the file next to this page and serve it over http, or load it manually.`);
   }
-});
+}
+
+if(map.isStyleLoaded()) initialize();
+else map.once('style.load', initialize);
 </script>
 </body>
 </html>
