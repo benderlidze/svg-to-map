@@ -28,6 +28,14 @@
   .seg button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#04101f;font-weight:600}
   button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
   input[type=range]{width:100%;accent-color:var(--acc)}
+  select{width:100%;margin-top:6px;background:#0b1017;border:1px solid var(--line);border-radius:6px;
+    color:var(--ink);padding:6px;font-size:12px}
+  .layers{display:flex;flex-direction:column;gap:3px;max-height:180px;overflow:auto;margin-top:6px;
+    background:#0b1017;border:1px solid var(--line);border-radius:6px;padding:5px}
+  .layer{display:flex;align-items:center;gap:7px;padding:4px;border-radius:4px;cursor:pointer}
+  .layer:hover{background:#151d27}.layer input{margin:0;accent-color:var(--acc)}
+  .layer span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .empty{color:var(--dim);padding:4px;font-size:11px}
 
   #msg{
     position:absolute;left:12px;bottom:28px;z-index:5;max-width:420px;
@@ -54,6 +62,19 @@
     <div class="lab">Overlay <i id="vO">100%</i></div>
     <input type="range" id="o" min="0" max="100" value="100">
   </div>
+  <div>
+    <div class="lab">SVG layers <i id="layerCount">—</i></div>
+    <div class="seg" style="margin-top:6px"><button id="layersAll">All</button><button id="layersNone">None</button></div>
+    <div id="layers" class="layers"><div class="empty">Loading SVG…</div></div>
+  </div>
+  <div>
+    <div class="lab">SVG quality <i id="renderInfo">4096 px</i></div>
+    <select id="quality">
+      <option value="2048">Normal · 2048 px</option>
+      <option value="4096" selected>High · 4096 px</option>
+      <option value="8192">Maximum · 8192 px</option>
+    </select>
+  </div>
 </div>
 
 <div id="msg">
@@ -73,7 +94,9 @@ const P = {
   widthM: 405.608229433247,
   rot: 0,
   aspect: 1,
-  opacity: 1
+  opacity: 1,
+  layers: {},
+  rasterSize: 4096
 };
 const VIEW = { center: [-113.9954430738494, 46.8661703787954], zoom: 16.957822407143677, bearing: 0, pitch: 0 };
 
@@ -115,17 +138,56 @@ function corners(){
 }
 
 /* ---------- SVG → raster ---------- */
-async function rasterize(text){
+function svgLayers(svg){
+  const allGroups = [...svg.querySelectorAll('g')];
+  const explicit = allGroups.filter(g => g.getAttribute('inkscape:groupmode') === 'layer');
+  const groups = explicit.length ? explicit : [...svg.children].filter(el => el.localName === 'g' && el.id);
+  return groups.map((el, i) => ({
+    el,
+    id: el.id || `layer-${i + 1}`,
+    name: el.getAttribute('inkscape:label') || el.getAttribute('data-name') || el.id || `Layer ${i + 1}`,
+    visible: el.getAttribute('display') !== 'none' && !/display\s*:\s*none/i.test(el.getAttribute('style') || '')
+  }));
+}
+function paintLayers(defs){
+  const box = document.getElementById('layers'); box.replaceChildren();
+  document.getElementById('layerCount').textContent = defs.length ? `${defs.filter(d => P.layers[d.id]).length}/${defs.length}` : '0';
+  if(!defs.length){ box.innerHTML = '<div class="empty">No separate layers found</div>'; return; }
+  for(const d of defs){
+    const label = document.createElement('label'); label.className = 'layer'; label.title = d.name;
+    const input = document.createElement('input'); input.type = 'checkbox'; input.checked = !!P.layers[d.id];
+    const span = document.createElement('span'); span.textContent = d.name.replace(/_x26_/g, ' & ');
+    input.onchange = () => { P.layers[d.id] = input.checked; rerenderOverlay(); };
+    label.append(input, span); box.append(label);
+  }
+}
+function maxTextureSize(){
+  const gl = map.getCanvas().getContext('webgl2') || map.getCanvas().getContext('webgl');
+  return gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 4096;
+}
+async function rasterize(text, preserveLayers){
   const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
   if(doc.querySelector('parsererror')) throw new Error('The SVG file could not be parsed.');
   const svg = doc.documentElement;
+  const defs = svgLayers(svg);
+  const oldLayers = preserveLayers ? P.layers : {};
+  P.layers = Object.fromEntries(defs.map(d => [d.id,
+    Object.prototype.hasOwnProperty.call(oldLayers, d.id) ? !!oldLayers[d.id] : d.visible]));
+  for(const d of defs){
+    if(P.layers[d.id]){ d.el.removeAttribute('display'); d.el.style.removeProperty('display'); }
+    else d.el.style.setProperty('display', 'none');
+  }
+  paintLayers(defs);
   const num = v => { const n = parseFloat(v); return (v && !/%$/.test(v.trim()) && isFinite(n) && n > 0) ? n : 0; };
   let w = num(svg.getAttribute('width')), h = num(svg.getAttribute('height'));
   const vb = (svg.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
   if((!w || !h) && vb.length === 4 && vb[2] > 0 && vb[3] > 0){ w = vb[2]; h = vb[3]; }
   if(!w || !h){ w = 1024; h = 1024; }
   if(vb.length !== 4) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  svg.setAttribute('width', w); svg.setAttribute('height', h);
+  const target = Math.min(Number(P.rasterSize) || 4096, maxTextureSize());
+  const k = Math.min(target/w, target/h);
+  const renderW = Math.max(1, Math.round(w*k)), renderH = Math.max(1, Math.round(h*k));
+  svg.setAttribute('width', renderW); svg.setAttribute('height', renderH);
 
   const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg));
   const img = new Image();
@@ -135,27 +197,33 @@ async function rasterize(text){
     img.src = url;
   });
 
-  const k = Math.min(2048/w, 2048/h, 4);
   const cv = document.createElement('canvas');
-  cv.width = Math.max(1, Math.round(w*k));
-  cv.height = Math.max(1, Math.round(h*k));
+  cv.width = renderW;
+  cv.height = renderH;
   cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  document.getElementById('renderInfo').textContent = `${Math.max(cv.width, cv.height)} px`;
   return { url: cv.toDataURL('image/png'), aspect: h/w };
 }
 
-let added = false;
-async function showOverlay(text){
-  const { url, aspect } = await rasterize(text);
+let added = false, currentSvgText = null, renderSeq = 0;
+async function showOverlay(text, preserveLayers = false){
+  const seq = ++renderSeq;
+  currentSvgText = text;
+  const { url, aspect } = await rasterize(text, preserveLayers);
+  if(seq !== renderSeq) return;
   P.aspect = aspect;
   if(added){
     map.getSource('overlay').updateImage({ url, coordinates: corners() });
   } else {
     map.addSource('overlay', { type:'image', url, coordinates: corners() });
     map.addLayer({ id:'overlay', type:'raster', source:'overlay',
-      paint:{ 'raster-opacity': P.opacity, 'raster-fade-duration': 0 } });
+      paint:{ 'raster-opacity': P.opacity, 'raster-fade-duration': 0, 'raster-resampling':'linear' } });
     added = true;
   }
   hideMsg();
+}
+function rerenderOverlay(){
+  if(currentSvgText) showOverlay(currentSvgText, true).catch(err => showMsg(err.message));
 }
 
 /* ---------- messages / manual file fallback ---------- */
@@ -169,10 +237,10 @@ document.getElementById('file').onchange = e => {
 };
 
 /* ---------- controls ---------- */
-document.querySelectorAll('.seg button').forEach(b => {
+document.querySelectorAll('[data-b]').forEach(b => {
   b.onclick = () => {
     for(const id of Object.keys(RASTER)) map.setLayoutProperty(id, 'visibility', id === b.dataset.b ? 'visible' : 'none');
-    document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    document.querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', x === b));
   };
 });
 document.getElementById('o').oninput = e => {
@@ -180,6 +248,13 @@ document.getElementById('o').oninput = e => {
   document.getElementById('vO').textContent = e.target.value + '%';
   if(added) map.setPaintProperty('overlay', 'raster-opacity', P.opacity);
 };
+document.getElementById('quality').onchange = e => { P.rasterSize = +e.target.value; rerenderOverlay(); };
+function setAllLayers(visible){
+  for(const id of Object.keys(P.layers)) P.layers[id] = visible;
+  rerenderOverlay();
+}
+document.getElementById('layersAll').onclick = () => setAllLayers(true);
+document.getElementById('layersNone').onclick = () => setAllLayers(false);
 
 /* ---------- start ---------- */
 map.on('load', async () => {
