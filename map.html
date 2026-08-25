@@ -15,7 +15,8 @@
     position:absolute;top:12px;right:12px;z-index:5;width:200px;
     background:var(--panel);backdrop-filter:blur(8px);color:var(--ink);
     border:1px solid var(--line);border-radius:10px;padding:10px;
-    box-shadow:0 10px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:10px
+    box-shadow:0 10px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:10px;
+    max-height:calc(100% - 24px);overflow:auto
   }
   .lab{color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase;
        display:flex;justify-content:space-between;align-items:baseline}
@@ -62,6 +63,11 @@
     <div class="lab">Overlay <i id="vO">100%</i></div>
     <input type="range" id="o" min="0" max="100" value="100">
   </div>
+  <div id="pictureUi" style="display:none">
+    <div class="lab">Picture <i id="vPO">80%</i></div>
+    <input type="range" id="pO" min="0" max="100" value="80">
+    <button id="pictureToggle" aria-pressed="true" style="width:100%;margin-top:6px">Hide picture</button>
+  </div>
   <div>
     <div class="lab">SVG layers <i id="layerCount">—</i></div>
     <div class="seg" style="margin-top:6px"><button id="layersAll">All</button><button id="layersNone">None</button></div>
@@ -99,6 +105,14 @@ const P = {
   rasterSize: 4096
 };
 const VIEW = { center: [-113.9954430738494, 46.8661703787954], zoom: 16.957822407143677, bearing: 0, pitch: 0 };
+let savedPicture = null;
+try { savedPicture = JSON.parse(localStorage.getItem('svg-overlay-v1') || 'null')?.picture || null; } catch(err){}
+const PIC = {
+  dataUrl:'image.png', lng:VIEW.center[0], lat:VIEW.center[1], widthM:500,
+  rot:0, opacity:.8, aspect:1040/1438,
+  ...(savedPicture || {})
+};
+if(!PIC.dataUrl) PIC.dataUrl = 'image.png';
 
 /* ---------- base maps ---------- */
 const RASTER = {
@@ -127,14 +141,27 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch:true }), 'top-l
 map.addControl(new maplibregl.ScaleControl({ maxWidth:120, unit:'metric' }), 'bottom-right');
 
 /* ---------- overlay geometry ---------- */
-function corners(){
-  const wm = P.widthM, hm = P.widthM * P.aspect;
-  const th = P.rot * Math.PI/180, c = Math.cos(th), s = Math.sin(th);
-  const mLat = 111320, mLng = 111320 * Math.cos(P.lat*Math.PI/180) || 1e-6;
+function corners(p = P){
+  const wm = p.widthM, hm = p.widthM * p.aspect;
+  const th = p.rot * Math.PI/180, c = Math.cos(th), s = Math.sin(th);
+  const mLat = 111320, mLng = 111320 * Math.cos(p.lat*Math.PI/180) || 1e-6;
   return [[-wm/2,hm/2],[wm/2,hm/2],[wm/2,-hm/2],[-wm/2,-hm/2]].map(([x,y])=>[
-    P.lng + (x*c + y*s)/mLng,
-    P.lat + (-x*s + y*c)/mLat
+    p.lng + (x*c + y*s)/mLng,
+    p.lat + (-x*s + y*c)/mLat
   ]);
+}
+
+/* ---------- picture under the SVG ---------- */
+let pictureAdded = false, pictureVisible = true;
+function showPicture(){
+  map.addSource('picture', { type:'image', url:PIC.dataUrl, coordinates:corners(PIC) });
+  map.addLayer({ id:'picture', type:'raster', source:'picture',
+    paint:{ 'raster-opacity':PIC.opacity, 'raster-fade-duration':0, 'raster-resampling':'linear' } },
+    map.getLayer('overlay') ? 'overlay' : undefined);
+  pictureAdded = true;
+  document.getElementById('pictureUi').style.display = 'block';
+  document.getElementById('pO').value = Math.round(PIC.opacity * 100);
+  document.getElementById('vPO').textContent = Math.round(PIC.opacity * 100) + '%';
 }
 
 /* ---------- SVG → raster ---------- */
@@ -248,6 +275,17 @@ document.getElementById('o').oninput = e => {
   document.getElementById('vO').textContent = e.target.value + '%';
   if(added) map.setPaintProperty('overlay', 'raster-opacity', P.opacity);
 };
+document.getElementById('pO').oninput = e => {
+  PIC.opacity = +e.target.value / 100;
+  document.getElementById('vPO').textContent = e.target.value + '%';
+  if(pictureAdded) map.setPaintProperty('picture', 'raster-opacity', PIC.opacity);
+};
+document.getElementById('pictureToggle').onclick = e => {
+  pictureVisible = !pictureVisible;
+  map.setLayoutProperty('picture', 'visibility', pictureVisible ? 'visible' : 'none');
+  e.currentTarget.setAttribute('aria-pressed', pictureVisible);
+  e.currentTarget.textContent = pictureVisible ? 'Hide picture' : 'Show picture';
+};
 document.getElementById('quality').onchange = e => { P.rasterSize = +e.target.value; rerenderOverlay(); };
 function setAllLayers(visible){
   for(const id of Object.keys(P.layers)) P.layers[id] = visible;
@@ -258,6 +296,7 @@ document.getElementById('layersNone').onclick = () => setAllLayers(false);
 
 /* ---------- start ---------- */
 map.on('load', async () => {
+  showPicture();
   try {
     const res = await fetch(SVG_URL);
     if(!res.ok) throw new Error(`${SVG_URL} returned ${res.status}.`);

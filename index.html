@@ -54,6 +54,8 @@
   button:hover{background:#26313f;border-color:#3b4855}
   button.pri{background:var(--acc);border-color:var(--acc);color:#1a1205;font-weight:600}
   button.pri:hover{background:#ffc46b}
+  button.locked{background:#24543f;border-color:#3d8b69;color:#dff8eb}
+  button:disabled,input:disabled{opacity:.5;cursor:not-allowed}
   hr{border:0;border-top:1px solid var(--line);margin:0}
   .hint{color:var(--dim);font-size:11px;line-height:1.5}
   .hint kbd{background:#0b1017;border:1px solid var(--line);border-radius:4px;padding:0 4px;
@@ -94,6 +96,21 @@
 
     <div id="drop"><b>Перетащите SVG</b>или нажмите, чтобы выбрать</div>
     <input type="file" id="file" accept=".svg,image/svg+xml" hidden>
+
+    <div class="grp">
+      <div class="lab">Нижний слой изображения <i id="picFileName">не выбран</i></div>
+      <button id="picPick">Выбрать PNG / JPG / WebP</button>
+      <input type="file" id="picFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+      <div class="row"><button id="picLock" disabled>Зафиксировать</button><button id="picRemove" disabled>Удалить картинку</button></div>
+    </div>
+
+    <div class="grp">
+      <div class="lab">Что редактируем</div>
+      <div class="seg">
+        <button id="editSvg" aria-pressed="true">SVG</button>
+        <button id="editPic" aria-pressed="false">Картинку</button>
+      </div>
+    </div>
 
     <div class="grp">
       <div class="lab">Ширина <i id="vW">500 м</i></div>
@@ -149,7 +166,8 @@
     <input type="file" id="impFile" accept=".json,application/json" hidden>
 
     <p class="hint">
-      Перетаскивайте оверлей мышью прямо по карте.<br>
+      Выберите, что редактировать, и перетаскивайте слой мышью прямо по карте.<br>
+      Картинка всегда находится под SVG; «Зафиксировать» блокирует её положение.<br>
       <kbd>Shift</kbd>+колесо — поворот, <kbd>Alt</kbd>+колесо — размер.<br>
       Стрелки — сдвиг, <kbd>Shift</kbd> — крупный шаг.<br>
       Параметры пишутся в браузер автоматически.
@@ -162,16 +180,21 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-g
 
 const KEY = 'svg-overlay-v1';
 const $ = s => document.querySelector(s);
+function emptyPicture(){
+  return { dataUrl:null, fileName:null, lng:37.6175, lat:55.7520, widthM:500,
+    rot:0, opacity:.8, aspect:1, locked:false };
+}
 
 const S = {
   lng: 37.6175, lat: 55.7520,
   widthM: 500, rot: 0, opacity: .8, aspect: 1,
   svgText: null, fileName: null,
   layers: {}, rasterSize: 4096,
+  picture: emptyPicture(), active: 'svg',
   view: { center:[37.6175,55.7520], zoom: 15, bearing: 0, pitch: 0 },
   base: 'osm'
 };
-let imgUrl = null, ready = false, renderSeq = 0;
+let imgUrl = null, ready = false, picReady = false, renderSeq = 0;
 
 /* ---------- карта ---------- */
 const map = new maplibregl.Map({
@@ -197,25 +220,29 @@ map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-lef
 map.addControl(new maplibregl.ScaleControl({maxWidth:120, unit:'metric'}), 'bottom-right');
 
 /* ---------- геометрия ---------- */
-function corners(){
-  const wm = S.widthM, hm = S.widthM * S.aspect;
-  const th = S.rot * Math.PI/180, c = Math.cos(th), s = Math.sin(th);
-  const mLat = 111320, mLng = 111320 * Math.cos(S.lat*Math.PI/180) || 1e-6;
+function placement(){ return S.active === 'picture' ? S.picture : S; }
+function activeReady(){ return S.active === 'picture' ? picReady : ready; }
+function activeLocked(){ return S.active === 'picture' && S.picture.locked; }
+function corners(p = S){
+  const wm = p.widthM, hm = p.widthM * p.aspect;
+  const th = p.rot * Math.PI/180, c = Math.cos(th), s = Math.sin(th);
+  const mLat = 111320, mLng = 111320 * Math.cos(p.lat*Math.PI/180) || 1e-6;
   return [[-wm/2,hm/2],[wm/2,hm/2],[wm/2,-hm/2],[-wm/2,-hm/2]].map(([x,y])=>[
-    S.lng + (x*c + y*s)/mLng,
-    S.lat + (-x*s + y*c)/mLat
+    p.lng + (x*c + y*s)/mLng,
+    p.lat + (-x*s + y*c)/mLat
   ]);
 }
 function refresh(){
-  if(ready) map.getSource('ov').setCoordinates(corners());
+  if(ready) map.getSource('ov').setCoordinates(corners(S));
+  if(picReady) map.getSource('pic').setCoordinates(corners(S.picture));
   paintStatus();
   scheduleSave();
 }
 function paintStatus(){
-  const w = S.widthM;
+  const p = placement(), w = p.widthM;
   $('#stW').textContent = w >= 1000 ? (w/1000).toFixed(2)+' км' : w.toFixed(1)+' м';
-  $('#stR').textContent = S.rot.toFixed(1)+'°';
-  $('#stC').textContent = S.lat.toFixed(5)+', '+S.lng.toFixed(5);
+  $('#stR').textContent = p.rot.toFixed(1)+'°';
+  $('#stC').textContent = p.lat.toFixed(5)+', '+p.lng.toFixed(5);
 }
 
 /* ---------- SVG → растр ---------- */
@@ -288,6 +315,7 @@ async function loadSvg(text, name, preserveLayers = false){
   S.aspect = h / w;
   S.svgText = text;
   S.fileName = name || 'overlay.svg';
+  if(!preserveLayers) S.active = 'svg';
   $('#fileName').textContent = S.fileName;
 
   if(!ready){
@@ -298,11 +326,60 @@ async function loadSvg(text, name, preserveLayers = false){
   } else {
     map.getSource('ov').updateImage({ url: imgUrl, coordinates: corners() });
   }
-  refresh();
+  syncUI(); refresh();
 }
 function rerenderSvg(){
   if(S.svgText) loadSvg(S.svgText, S.fileName, true);
 }
+
+/* ---------- обычное изображение ---------- */
+async function loadPicture(dataUrl, name, preservePlacement = false, activate = true){
+  const img = new Image();
+  await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = dataUrl; });
+  const previous = S.picture || emptyPicture();
+  const p = preservePlacement ? { ...emptyPicture(), ...previous } : emptyPicture();
+  if(!preservePlacement){
+    const c = map.getCenter(); p.lng = c.lng; p.lat = c.lat;
+  }
+  p.dataUrl = dataUrl;
+  p.fileName = name || previous.fileName || 'image';
+  p.aspect = img.naturalHeight / img.naturalWidth || 1;
+  S.picture = p;
+  $('#picFileName').textContent = p.fileName;
+
+  if(!picReady){
+    map.addSource('pic', { type:'image', url:dataUrl, coordinates:corners(p) });
+    const layer = { id:'pic', type:'raster', source:'pic',
+      paint:{ 'raster-opacity':p.opacity, 'raster-fade-duration':0, 'raster-resampling':'linear' } };
+    map.addLayer(layer, map.getLayer('ov') ? 'ov' : undefined);
+    picReady = true;
+  } else {
+    map.getSource('pic').updateImage({ url:dataUrl, coordinates:corners(p) });
+    map.setPaintProperty('pic', 'raster-opacity', p.opacity);
+  }
+  if(activate) S.active = 'picture';
+  syncUI(); refresh();
+}
+function readPicture(file){
+  const reader = new FileReader();
+  reader.onload = () => loadPicture(reader.result, file.name).catch(() => alert('Не удалось открыть изображение.'));
+  reader.onerror = () => alert('Не удалось прочитать файл изображения.');
+  reader.readAsDataURL(file);
+}
+function removePicture(){
+  if(picReady){ map.removeLayer('pic'); map.removeSource('pic'); picReady = false; }
+  S.picture = emptyPicture(); S.active = 'svg';
+  $('#picFile').value = ''; $('#picFileName').textContent = 'не выбран';
+  syncUI(); refresh();
+}
+$('#picPick').onclick = () => $('#picFile').click();
+$('#picFile').onchange = e => { const f = e.target.files[0]; if(f) readPicture(f); };
+$('#picRemove').onclick = () => { if(confirm('Убрать картинку с карты?')) removePicture(); };
+$('#picLock').onclick = () => {
+  if(!picReady) return;
+  S.picture.locked = !S.picture.locked;
+  syncUI(); scheduleSave();
+};
 
 /* ---------- выбор файла ---------- */
 $('#drop').onclick = () => $('#file').click();
@@ -311,7 +388,9 @@ $('#file').onchange = e => { const f = e.target.files[0]; if(f) f.text().then(t=
 ['dragleave','drop'].forEach(ev => document.addEventListener(ev, e=>{ e.preventDefault(); if(ev==='drop'||e.target===document.documentElement) document.body.classList.remove('dragover'); }));
 document.addEventListener('drop', e => {
   const f = e.dataTransfer.files[0];
-  if(f && /svg/.test(f.type + f.name)) f.text().then(t=>loadSvg(t, f.name));
+  if(!f) return;
+  if(/svg/.test(f.type + f.name)) f.text().then(t=>loadSvg(t, f.name));
+  else if(/^image\//.test(f.type)) readPicture(f);
 });
 
 /* ---------- слайдеры ---------- */
@@ -321,26 +400,42 @@ const toP = w => 1000 * Math.log(w/MINW) / Math.log(MAXW/MINW);
 const fmtW = w => w >= 1000 ? (w/1000).toFixed(2)+' км' : w.toFixed(1)+' м';
 
 function syncUI(){
-  $('#w').value = toP(S.widthM);       $('#vW').textContent = fmtW(S.widthM);
-  $('#wNum').value = S.widthM.toFixed(1);
-  $('#r').value = S.rot;               $('#vR').textContent = S.rot.toFixed(1)+'°';
-  $('#rNum').value = S.rot.toFixed(1);
-  $('#o').value = Math.round(S.opacity*100); $('#vO').textContent = Math.round(S.opacity*100)+'%';
-  $('#ll').value = S.lat.toFixed(6)+', '+S.lng.toFixed(6);
+  const p = placement(), locked = activeLocked();
+  $('#w').value = toP(p.widthM);       $('#vW').textContent = fmtW(p.widthM);
+  $('#wNum').value = p.widthM.toFixed(1);
+  $('#r').value = p.rot;               $('#vR').textContent = p.rot.toFixed(1)+'°';
+  $('#rNum').value = p.rot.toFixed(1);
+  $('#o').value = Math.round(p.opacity*100); $('#vO').textContent = Math.round(p.opacity*100)+'%';
+  $('#ll').value = p.lat.toFixed(6)+', '+p.lng.toFixed(6);
   $('#bOSM').setAttribute('aria-pressed', S.base==='osm');
   $('#bSAT').setAttribute('aria-pressed', S.base==='sat');
   $('#quality').value = String(S.rasterSize || 4096);
+  $('#editSvg').setAttribute('aria-pressed', S.active === 'svg');
+  $('#editPic').setAttribute('aria-pressed', S.active === 'picture');
+  $('#editPic').disabled = !picReady;
+  $('#picLock').disabled = !picReady;
+  $('#picRemove').disabled = !picReady;
+  $('#picLock').textContent = S.picture.locked ? 'Разблокировать' : 'Зафиксировать';
+  $('#picLock').classList.toggle('locked', S.picture.locked);
+  for(const id of ['w','wNum','r','rNum','ll']) $('#'+id).disabled = locked;
 }
-function setW(v){ S.widthM = Math.min(MAXW, Math.max(MINW, v)); syncUI(); refresh(); }
-function setR(v){ S.rot = ((v + 180) % 360 + 360) % 360 - 180; syncUI(); refresh(); }
+function setActive(kind){
+  if(kind === 'picture' && !picReady) return;
+  S.active = kind; syncUI(); paintStatus(); scheduleSave();
+}
+function setW(v){ const p = placement(); if(activeLocked()) return; p.widthM = Math.min(MAXW, Math.max(MINW, v)); syncUI(); refresh(); }
+function setR(v){ const p = placement(); if(activeLocked()) return; p.rot = ((v + 180) % 360 + 360) % 360 - 180; syncUI(); refresh(); }
 
+$('#editSvg').onclick = () => setActive('svg');
+$('#editPic').onclick = () => setActive('picture');
 $('#w').oninput = e => setW(toW(+e.target.value));
-$('#wNum').onchange = e => setW(parseFloat(e.target.value) || S.widthM);
+$('#wNum').onchange = e => setW(parseFloat(e.target.value) || placement().widthM);
 $('#r').oninput = e => setR(+e.target.value);
 $('#rNum').onchange = e => setR(parseFloat(e.target.value) || 0);
 $('#o').oninput = e => {
-  S.opacity = +e.target.value/100; $('#vO').textContent = e.target.value+'%';
-  if(ready) map.setPaintProperty('ov','raster-opacity', S.opacity);
+  const p = placement(); p.opacity = +e.target.value/100; $('#vO').textContent = e.target.value+'%';
+  const layer = S.active === 'picture' ? 'pic' : 'ov';
+  if(activeReady()) map.setPaintProperty(layer,'raster-opacity', p.opacity);
   scheduleSave();
 };
 $('#quality').onchange = e => { S.rasterSize = +e.target.value; rerenderSvg(); };
@@ -352,7 +447,8 @@ $('#layersAll').onclick = () => setAllLayers(true);
 $('#layersNone').onclick = () => setAllLayers(false);
 $('#ll').onchange = e => {
   const m = e.target.value.split(/[,\s]+/).map(Number).filter(n=>isFinite(n));
-  if(m.length===2){ S.lat = m[0]; S.lng = m[1]; syncUI(); refresh(); map.easeTo({center:[S.lng,S.lat]}); }
+  const p = placement();
+  if(m.length===2 && !activeLocked()){ p.lat = m[0]; p.lng = m[1]; syncUI(); refresh(); map.easeTo({center:[p.lng,p.lat]}); }
 };
 $('#fold').onclick = () => {
   const p = $('#panel'); p.classList.toggle('folded');
@@ -370,8 +466,8 @@ function setBase(b){
 /* ---------- перетаскивание по карте ---------- */
 let drag = null;
 function inQuad(pt){
-  if(!ready) return false;
-  const q = corners().map(c => map.project(c));
+  if(!activeReady()) return false;
+  const q = corners(placement()).map(c => map.project(c));
   let hit = false;
   for(let i=0, j=3; i<4; j=i++){
     const a = q[i], b = q[j];
@@ -380,18 +476,19 @@ function inQuad(pt){
   return hit;
 }
 map.on('mousedown', e => {
-  if(!inQuad(e.point)) return;
+  if(activeLocked() || !inQuad(e.point)) return;
   e.preventDefault();
-  drag = { start: e.lngLat, lng: S.lng, lat: S.lat };
+  const p = placement();
+  drag = { start: e.lngLat, lng:p.lng, lat:p.lat, target:p };
   map.dragPan.disable(); map.getCanvas().style.cursor = 'grabbing';
 });
 map.on('mousemove', e => {
   if(drag){
-    S.lng = drag.lng + (e.lngLat.lng - drag.start.lng);
-    S.lat = drag.lat + (e.lngLat.lat - drag.start.lat);
+    drag.target.lng = drag.lng + (e.lngLat.lng - drag.start.lng);
+    drag.target.lat = drag.lat + (e.lngLat.lat - drag.start.lat);
     syncUI(); refresh();
   } else {
-    map.getCanvas().style.cursor = inQuad(e.point) ? 'move' : '';
+    map.getCanvas().style.cursor = !activeLocked() && inQuad(e.point) ? 'move' : '';
   }
 });
 window.addEventListener('mouseup', () => {
@@ -400,17 +497,19 @@ window.addEventListener('mouseup', () => {
 });
 map.on('wheel', e => {
   const oe = e.originalEvent;
-  if(oe.shiftKey){ e.preventDefault(); setR(S.rot + Math.sign(oe.deltaY) * 1); }
-  else if(oe.altKey){ e.preventDefault(); setW(S.widthM * (oe.deltaY > 0 ? 0.97 : 1/0.97)); }
+  const p = placement();
+  if(activeLocked()) return;
+  if(oe.shiftKey){ e.preventDefault(); setR(p.rot + Math.sign(oe.deltaY) * 1); }
+  else if(oe.altKey){ e.preventDefault(); setW(p.widthM * (oe.deltaY > 0 ? 0.97 : 1/0.97)); }
 });
 window.addEventListener('keydown', e => {
-  if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName) || !ready) return;
-  const step = S.widthM * (e.shiftKey ? 0.1 : 0.01);
-  const mLat = 111320, mLng = 111320 * Math.cos(S.lat*Math.PI/180);
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || !activeReady() || activeLocked()) return;
+  const p = placement(), step = p.widthM * (e.shiftKey ? 0.1 : 0.01);
+  const mLat = 111320, mLng = 111320 * Math.cos(p.lat*Math.PI/180);
   const k = { ArrowUp:[0,1], ArrowDown:[0,-1], ArrowLeft:[-1,0], ArrowRight:[1,0] }[e.key];
-  if(k){ e.preventDefault(); S.lng += k[0]*step/mLng; S.lat += k[1]*step/mLat; syncUI(); refresh(); return; }
-  if(e.key === '['){ setR(S.rot - (e.shiftKey ? 5 : 0.5)); }
-  if(e.key === ']'){ setR(S.rot + (e.shiftKey ? 5 : 0.5)); }
+  if(k){ e.preventDefault(); p.lng += k[0]*step/mLng; p.lat += k[1]*step/mLat; syncUI(); refresh(); return; }
+  if(e.key === '['){ setR(p.rot - (e.shiftKey ? 5 : 0.5)); }
+  if(e.key === ']'){ setR(p.rot + (e.shiftKey ? 5 : 0.5)); }
 });
 map.on('moveend', scheduleSave);
 
@@ -423,18 +522,27 @@ function snapshot(){
   return S;
 }
 function save(){
-  try { localStorage.setItem(KEY, JSON.stringify(snapshot())); }
-  catch(err){ console.warn('Не удалось сохранить в браузер:', err); }
+  try { localStorage.setItem(KEY, JSON.stringify(snapshot())); return true; }
+  catch(err){ console.warn('Не удалось сохранить в браузер:', err); return false; }
 }
 function apply(d){
+  const restoredPicture = { ...emptyPicture(), ...(d.picture || {}) };
   Object.assign(S, d);
+  S.picture = restoredPicture;
+  if(S.active === 'picture' && !S.picture.dataUrl) S.active = 'svg';
   map.jumpTo({ center: S.view.center, zoom: S.view.zoom, bearing: S.view.bearing||0, pitch: S.view.pitch||0 });
   setBase(S.base || 'osm');
   syncUI();
   if(ready) map.setPaintProperty('ov','raster-opacity', S.opacity);
+  if(S.picture.dataUrl) loadPicture(S.picture.dataUrl, S.picture.fileName, true, false)
+    .catch(() => alert('Сохранённую картинку не удалось восстановить.'));
+  else if(picReady){ map.removeLayer('pic'); map.removeSource('pic'); picReady = false; }
   if(S.svgText) loadSvg(S.svgText, S.fileName, true); else refresh();
 }
-$('#save').onclick = () => { save(); $('#save').textContent = 'Сохранено'; setTimeout(()=>$('#save').textContent='Сохранить', 1200); };
+$('#save').onclick = () => {
+  if(!save()){ alert('Не хватило места в браузере для сохранения картинки. Попробуйте файл меньшего размера.'); return; }
+  $('#save').textContent = 'Сохранено'; setTimeout(()=>$('#save').textContent='Сохранить', 1200);
+};
 $('#load').onclick = () => {
   const raw = localStorage.getItem(KEY);
   if(!raw){ alert('В браузере пока ничего не сохранено.'); return; }
@@ -455,21 +563,25 @@ $('#impFile').onchange = e => {
 
 /* ---------- сброс ---------- */
 $('#reset').onclick = () => {
-  const c = map.getCenter();
-  S.lng = c.lng; S.lat = c.lat;
-  S.widthM = 500; S.rot = 0; S.opacity = .8;
-  if(ready) map.setPaintProperty('ov','raster-opacity', S.opacity);
+  if(activeLocked()) return;
+  const c = map.getCenter(), p = placement();
+  p.lng = c.lng; p.lat = c.lat;
+  p.widthM = 500; p.rot = 0; p.opacity = .8;
+  const layer = S.active === 'picture' ? 'pic' : 'ov';
+  if(activeReady()) map.setPaintProperty(layer,'raster-opacity', p.opacity);
   syncUI(); refresh();
 };
 $('#wipe').onclick = () => {
-  if(!confirm('Убрать оверлей и стереть сохранённые параметры?')) return;
+  if(!confirm('Убрать SVG, картинку и стереть сохранённые параметры?')) return;
   if(ready){ map.removeLayer('ov'); map.removeSource('ov'); ready = false; }
+  if(picReady){ map.removeLayer('pic'); map.removeSource('pic'); picReady = false; }
   imgUrl = null; S.svgText = null; S.fileName = null;
-  S.layers = {}; S.rasterSize = 4096;
+  S.layers = {}; S.rasterSize = 4096; S.picture = emptyPicture(); S.active = 'svg';
   S.widthM = 500; S.rot = 0; S.opacity = .8;
   const c = map.getCenter(); S.lng = c.lng; S.lat = c.lat;
   localStorage.removeItem(KEY);
   $('#fileName').textContent = 'файл не выбран';
+  $('#picFileName').textContent = 'не выбран'; $('#picFile').value = '';
   $('#layers').innerHTML = '<div class="empty">Загрузите SVG</div>';
   $('#layerCount').textContent = '—'; $('#renderInfo').textContent = '4096 px';
   $('#file').value = '';
@@ -479,8 +591,16 @@ $('#wipe').onclick = () => {
 /* ---------- старт ---------- */
 map.on('load', () => {
   const raw = localStorage.getItem(KEY);
-  if(raw){ try { apply(JSON.parse(raw)); return; } catch(err){} }
+  if(raw){
+    try {
+      const saved = JSON.parse(raw);
+      apply(saved);
+      if(!saved.picture?.dataUrl) loadPicture('image.png', 'image.png').catch(()=>{});
+      return;
+    } catch(err){}
+  }
   syncUI(); paintStatus();
+  loadPicture('image.png', 'image.png').catch(()=>{});
 });
 </script>
 </body>
