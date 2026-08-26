@@ -285,18 +285,11 @@ function rebuildShapeLayers(){
   }
 }
 
-// Размер задаётся «как на эталонном зуме»: пиксельный text-size у MapLibre не меняется с зумом,
-// а сами полигоны — меняются, из-за чего подпись «отклеивается» от своей комнаты. exponential(2)
-// с шагом ровно в 1 зум даёт удвоение размера на каждом уровне — то же самое, что и масштаб тайлов,
-// поэтому текст растёт и сжимается вместе с этажом, а не сам по себе.
-const LABEL_REFERENCE_ZOOM = 19;
-function zoomScaledSize(sizeExpr){
-  return ['interpolate', ['exponential', 2], ['zoom'],
-    LABEL_REFERENCE_ZOOM - 10, ['/', sizeExpr, 1024],
-    LABEL_REFERENCE_ZOOM + 4, ['*', sizeExpr, 16]
-  ];
-}
-
+// Пробовал масштабировать text-size вместе с зумом через interpolate(zoom)+get(textSize) —
+// в этой версии MapLibre GL JS такая комбинация «зум + значение из свойств объекта» для text-size
+// не работает: движок использует только зум-часть и молча игнорирует данные объекта (проверено
+// на чистом MapLibre без нашего кода — оба объекта с разным textSize рендерились одним размером).
+// Поэтому размер снова обычный, не зависящий от зума, зато поле «Text size» реально работает.
 const LABELS_SOURCE_ID = 'labels';
 
 function addLayers(){
@@ -316,7 +309,7 @@ function addLayers(){
       'text-field':['coalesce', ['get','label'], ''],
       // Важно: coalesce ДО to-number, а не наоборот — to-number(null) даёт 0, а не null,
       // и тогда coalesce(to-number(null), 14) вернёт 0 (невидимый текст), а не 14.
-      'text-size':zoomScaledSize(['to-number', ['coalesce', ['get','textSize'], 28]]),
+      'text-size':['to-number', ['coalesce', ['get','textSize'], 28]],
       'text-rotate':['to-number', ['coalesce', ['get','textAngle'], 0]],
       // text-offset — массив из двух чисел; выражение обязано целиком вернуть массив,
       // отдельные вычисляемые числа внутрь него так не вставить — поэтому храним готовый [x,y].
@@ -371,6 +364,10 @@ function normalizeGeoJson(value){
 function ensureUids(fc){
   for(const feature of fc.features){
     if(!feature.properties.__uid) feature.properties.__uid = `f${nextUid++}`;
+    // Цвета по умолчанию прописываются в свойства сразу при загрузке, а не только
+    // подставляются на глаз в стиле карты — так они видны и сохраняются в самом GeoJSON.
+    if(!feature.properties.fillColor) feature.properties.fillColor = '#8f623f';
+    if(!feature.properties.outlineColor) feature.properties.outlineColor = '#000000';
   }
   return fc;
 }

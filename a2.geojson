@@ -6,7 +6,10 @@
       "id": "feature-43",
       "properties": {
         "__gm_id": "feature-43",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -63,7 +66,13 @@
       "id": "feature-49",
       "properties": {
         "__gm_id": "feature-49",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#808080",
+        "outlineColor": "#000000",
+        "label": "Future Phase",
+        "textAngle": 22,
+        "textSize": 18,
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -100,7 +109,10 @@
       "id": "feature-53",
       "properties": {
         "__gm_id": "feature-53",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -145,7 +157,10 @@
       "id": "feature-57",
       "properties": {
         "__gm_id": "feature-57",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -181,7 +196,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-69",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -222,7 +240,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-73",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -267,7 +288,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-77",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -304,7 +328,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-81",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -341,7 +368,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-85",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -378,7 +408,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-89",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -423,7 +456,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-95",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -476,7 +512,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-99",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -533,7 +572,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-103",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -570,7 +612,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-107",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -607,7 +652,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-111",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -648,7 +696,13 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-115",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "Pr.Patio",
+        "textSize": 14,
+        "textAngle": 21
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -685,7 +739,13 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-119",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "Pr.Patio",
+        "textSize": 14,
+        "textAngle": 22
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -722,7 +782,13 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-123",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "Pr.Patio",
+        "textSize": 14,
+        "textAngle": 22
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -759,7 +825,13 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-127",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "Pr.Patio",
+        "textSize": 14,
+        "textAngle": 22
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -796,7 +868,13 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-133",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "Pr.Patio",
+        "textSize": 14,
+        "textAngle": 22
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -833,7 +911,13 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-137",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "Pr.Patio",
+        "textSize": 14,
+        "textAngle": 22
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -870,7 +954,11 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-141",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "A07"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -907,7 +995,11 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-147",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "A08"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -944,7 +1036,11 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-151",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "A09"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -981,7 +1077,11 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-155",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "A10"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1018,7 +1118,11 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-159",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "A11"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1055,7 +1159,11 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-163",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "level": "a2",
+        "label": "A12"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1092,7 +1200,10 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-687",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#b0966a",
+        "outlineColor": "#000000",
+        "level": "a2"
       },
       "geometry": {
         "type": "MultiPolygon",
