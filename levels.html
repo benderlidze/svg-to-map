@@ -155,7 +155,7 @@
       <input type="range" id="labelAngle" min="0" max="360" step="1" value="0" disabled>
 
       <div class="lab">Text size</div>
-      <input type="number" id="labelSize" min="6" max="72" step="1" value="14" disabled>
+      <input type="number" id="labelSize" min="6" max="72" step="1" value="28" disabled>
 
       <div class="lab">Text offset from centroid <i>ems</i></div>
       <div class="row">
@@ -285,25 +285,45 @@ function rebuildShapeLayers(){
   }
 }
 
+// Размер задаётся «как на эталонном зуме»: пиксельный text-size у MapLibre не меняется с зумом,
+// а сами полигоны — меняются, из-за чего подпись «отклеивается» от своей комнаты. exponential(2)
+// с шагом ровно в 1 зум даёт удвоение размера на каждом уровне — то же самое, что и масштаб тайлов,
+// поэтому текст растёт и сжимается вместе с этажом, а не сам по себе.
+const LABEL_REFERENCE_ZOOM = 19;
+function zoomScaledSize(sizeExpr){
+  return ['interpolate', ['exponential', 2], ['zoom'],
+    LABEL_REFERENCE_ZOOM - 10, ['/', sizeExpr, 1024],
+    LABEL_REFERENCE_ZOOM + 4, ['*', sizeExpr, 16]
+  ];
+}
+
+const LABELS_SOURCE_ID = 'labels';
+
 function addLayers(){
   map.addSource(SOURCE_ID, { type:'geojson', data: EMPTY_FC });
+  // Подписи — отдельный точечный источник (центр фигуры), а не сама геометрия фигуры.
+  // Точка всегда попадает ровно в один внутренний тайл GeoJSON-источника, поэтому её нельзя
+  // разрезать на границе тайлов — а именно из-за такого разреза у крупных полигонов дублировалась
+  // подпись, когда мы пробовали text-allow-overlap прямо на их геометрии. С точками эта проблема
+  // структурно не возникает, поэтому overlap/ignore-placement можно включить безопасно —
+  // подпись гарантированно не пропадёт из-за коллизии с соседними подписями.
+  map.addSource(LABELS_SOURCE_ID, { type:'geojson', data: EMPTY_FC });
 
   map.addLayer({
-    id:'shapes-label', type:'symbol', source:SOURCE_ID,
+    id:'shapes-label', type:'symbol', source:LABELS_SOURCE_ID,
     filter:['!=', ['coalesce', ['get','label'], ''], ''],
     layout:{
       'text-field':['coalesce', ['get','label'], ''],
       // Важно: coalesce ДО to-number, а не наоборот — to-number(null) даёт 0, а не null,
       // и тогда coalesce(to-number(null), 14) вернёт 0 (невидимый текст), а не 14.
-      'text-size':['to-number', ['coalesce', ['get','textSize'], 14]],
+      'text-size':zoomScaledSize(['to-number', ['coalesce', ['get','textSize'], 28]]),
       'text-rotate':['to-number', ['coalesce', ['get','textAngle'], 0]],
       // text-offset — массив из двух чисел; выражение обязано целиком вернуть массив,
       // отдельные вычисляемые числа внутрь него так не вставить — поэтому храним готовый [x,y].
       'text-offset':['coalesce', ['get','textOffset'], ['literal',[0,0]]],
       'text-rotation-alignment':'map',
-      // Стандартная система коллизий MapLibre/Mapbox остаётся включённой: она же убирает
-      // дубли подписи, которые иначе возникают на границе внутренних тайлов GeoJSON-источника
-      // у крупных полигонов при text-allow-overlap:true (проверено — баг самого движка).
+      'text-allow-overlap':true,
+      'text-ignore-placement':true,
       'text-font':['Noto Sans Regular']
     },
     paint:{
@@ -323,6 +343,8 @@ map.on('load', addLayers);
 function setData(){
   const source = map.getSource(SOURCE_ID);
   if(source) source.setData(collection || EMPTY_FC);
+  const labelsSource = map.getSource(LABELS_SOURCE_ID);
+  if(labelsSource) labelsSource.setData(labelPointsCollection(collection));
   $('#geoJsonView').value = JSON.stringify(exportCollection(), null, 2);
   $('#geoJsonCount').textContent = `${collection?.features.length || 0} objects`;
 }
@@ -351,6 +373,27 @@ function ensureUids(fc){
     if(!feature.properties.__uid) feature.properties.__uid = `f${nextUid++}`;
   }
   return fc;
+}
+// Точка привязки подписи — центр габаритного прямоугольника фигуры (не центроид площади,
+// но для типичных комнат/коридоров этого достаточно, а считается одинаково для любой геометрии).
+function labelAnchor(geometry){
+  const [minX, minY, maxX, maxY] = flatBounds(geometry);
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
+function labelPointsCollection(fc){
+  return {
+    type:'FeatureCollection',
+    features:(fc?.features || [])
+      .filter(f => f.properties.label)
+      .map(f => ({
+        type:'Feature',
+        properties:{
+          __uid:f.properties.__uid, label:f.properties.label,
+          textSize:f.properties.textSize, textAngle:f.properties.textAngle, textOffset:f.properties.textOffset
+        },
+        geometry:{ type:'Point', coordinates:labelAnchor(f.geometry) }
+      }))
+  };
 }
 function flatBounds(geometry){
   const flat = geometry.coordinates.flat(Infinity);
@@ -443,7 +486,7 @@ function syncPanel(){
   $('#labelText').value = p.label || '';
   $('#labelAngle').value = String(p.textAngle ?? 0);
   $('#vAngle').textContent = `${Math.round(p.textAngle ?? 0)}°`;
-  $('#labelSize').value = String(p.textSize ?? 14);
+  $('#labelSize').value = String(p.textSize ?? 28);
   const offset = Array.isArray(p.textOffset) ? p.textOffset : [0, 0];
   $('#labelOffsetX').value = String(offset[0] ?? 0);
   $('#labelOffsetY').value = String(offset[1] ?? 0);
