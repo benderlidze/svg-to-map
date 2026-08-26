@@ -7,7 +7,8 @@
         "__gm_id": "feature-3",
         "__gm_shape": "polygon",
         "fillColor": "#b0966a",
-        "level": "4"
+        "level": "4",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -144,10 +145,12 @@
         "level": "4",
         "label": "402",
         "textOffset": [
-          -3.1,
-          -1
+          0,
+          -0.2
         ],
-        "textSize": 28
+        "textSize": 16,
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -234,12 +237,14 @@
         "__gm_id": "feature-31",
         "__gm_shape": "polygon",
         "level": "4",
-        "textSize": 28,
+        "textSize": 16,
         "label": "401",
         "textOffset": [
-          2.9,
-          1
-        ]
+          0,
+          0.3
+        ],
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -354,8 +359,10 @@
         "__gm_id": "feature-37",
         "__gm_shape": "polygon",
         "level": "4",
-        "textSize": 28,
-        "label": "404"
+        "textSize": 16,
+        "label": "404",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -427,7 +434,9 @@
         "__gm_shape": "polygon",
         "level": "4",
         "label": "403",
-        "textSize": 28
+        "textSize": 16,
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -502,8 +511,10 @@
         "__gm_id": "feature-49",
         "__gm_shape": "polygon",
         "level": "4",
-        "textSize": 28,
-        "label": "405"
+        "textSize": 16,
+        "label": "405",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -578,7 +589,10 @@
         "textOffset": [
           0,
           0.9
-        ]
+        ],
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -651,9 +665,12 @@
         "level": "4",
         "label": "411",
         "textOffset": [
-          2,
-          0
-        ]
+          0.3,
+          -0.2
+        ],
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -708,7 +725,10 @@
         "__gm_id": "feature-531",
         "__gm_shape": "polygon",
         "level": "4",
-        "label": "410"
+        "label": "410",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -779,7 +799,10 @@
         "__gm_id": "feature-537",
         "__gm_shape": "polygon",
         "level": "4",
-        "label": "412"
+        "label": "412",
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -853,8 +876,11 @@
         "label": "409",
         "textOffset": [
           0,
-          1.2
-        ]
+          0
+        ],
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -926,7 +952,9 @@
         "__gm_shape": "polygon",
         "level": "4",
         "label": "406",
-        "textSize": 28
+        "textSize": 16,
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1016,8 +1044,11 @@
         "label": "407",
         "textOffset": [
           0,
-          1.1
-        ]
+          0
+        ],
+        "fillColor": "#8f623f",
+        "outlineColor": "#000000",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
+<title>Levels Viewer</title>
+
+<style>
+  :root{
+    --bg:#0d1117; --panel:#151b23; --line:#2a333f; --ink:#e6edf3;
+    --dim:#8b98a5; --acc:#ffb454; --acc2:#4aa3ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font:13px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+  #map{position:absolute;inset:0}
+  .maplibregl-canvas{outline:none}
+
+  #levels{
+    position:absolute;top:12px;right:12px;z-index:5;
+    background:rgba(21,27,35,.94);backdrop-filter:blur(8px);
+    border:1px solid var(--line);border-radius:10px;padding:8px;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);
+    display:flex;flex-direction:column;gap:6px;
+  }
+  #levels .lab{color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:0 2px 2px}
+  #levels button{
+    background:#1d2632;border:1px solid var(--line);color:var(--ink);border-radius:6px;
+    padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;min-width:64px}
+  #levels button:hover{background:#26313f;border-color:#3b4855}
+  #levels button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#1a1205}
+  #levels button:focus-visible{outline:2px solid var(--acc2);outline-offset:1px}
+
+  #base{
+    position:absolute;top:12px;left:52px;z-index:5;display:flex;
+    border:1px solid var(--line);border-radius:6px;overflow:hidden;
+    background:rgba(21,27,35,.94);backdrop-filter:blur(8px)}
+  #base button{background:transparent;border:0;color:var(--ink);padding:7px 12px;font-size:12px;cursor:pointer}
+  #base button[aria-pressed=true]{background:var(--acc2);color:#04101f;font-weight:600}
+
+  #status{position:absolute;left:12px;bottom:26px;z-index:5;background:rgba(21,27,35,.9);
+    border:1px solid var(--line);border-radius:6px;padding:6px 9px;color:var(--dim);
+    font-family:ui-monospace,Menlo,monospace;font-size:11px}
+  #status b{color:var(--acc);font-weight:600}
+  #status.err b{color:#ff9c9c}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="base">
+  <button id="bOSM" aria-pressed="false">Map</button>
+  <button id="bSAT" aria-pressed="true">Satellite</button>
+</div>
+
+<div id="levels">
+  <div class="lab">Level</div>
+</div>
+
+<div id="status"><b id="stText">loading…</b></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "maplibre-gl": "https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs"
+  }
+}
+</script>
+<script type="module">
+import * as maplibregl from 'maplibre-gl';
+
+const $ = s => document.querySelector(s);
+
+// Этажи сверху вниз, как их принято перечислять в здании.
+const LEVELS = [
+  { id:'4',  title:'4',  file:'4th.geojson' },
+  { id:'3',  title:'3',  file:'3rd.geojson' },
+  { id:'2',  title:'2',  file:'2nd.geojson' },
+  { id:'1',  title:'1',  file:'1st.geojson' },
+  { id:'a1', title:'A1', file:'a1.geojson' },
+  { id:'a2', title:'A2', file:'a2.geojson' }
+];
+const DEFAULT_LEVEL = '1';
+
+/* ---------- карта ---------- */
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources: {
+      osm: { type:'raster', tileSize:256,
+        tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution:'© OpenStreetMap' },
+      sat: { type:'raster', tileSize:256, maxzoom:19,
+        tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        attribution:'Esri, Maxar, Earthstar Geographics' }
+    },
+    layers: [
+      { id:'osm', type:'raster', source:'osm', layout:{visibility:'none'} },
+      { id:'sat', type:'raster', source:'sat' }
+    ]
+  },
+  center: [-113.99607348716607, 46.86704363356705], zoom: 17.5, maxZoom: 22
+});
+map.boxZoom.disable();
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-left');
+map.addControl(new maplibregl.ScaleControl({maxWidth:120, unit:'metric'}), 'bottom-right');
+
+$('#bOSM').onclick = () => setBase('osm');
+$('#bSAT').onclick = () => setBase('sat');
+function setBase(b){
+  $('#bOSM').setAttribute('aria-pressed', b==='osm');
+  $('#bSAT').setAttribute('aria-pressed', b==='sat');
+  map.setLayoutProperty('osm','visibility', b==='osm' ? 'visible':'none');
+  map.setLayoutProperty('sat','visibility', b==='sat' ? 'visible':'none');
+}
+
+/* ---------- отрисовка: тот же стиль, что и в редакторе ---------- */
+const SOURCE_ID = 'shapes';
+const LABELS_SOURCE_ID = 'labels';
+const EMPTY_FC = { type:'FeatureCollection', features:[] };
+// Обводку можно выключить у объекта — красим прозрачным, цвет при этом сохраняется в свойствах.
+const OUTLINE_COLOR_EXPR = ['case',
+  ['==', ['coalesce', ['get','outlineEnabled'], true], false], 'rgba(0,0,0,0)',
+  ['coalesce', ['get','outlineColor'], '#000000']
+];
+const OUTLINE_WIDTH = 2;
+// Текст масштабируется вместе с картой, иначе при отдалении комната сжимается, а подпись — нет.
+// Шаг стопов в 8 зумов при отношении значений 256 даёт удвоение размера на каждый уровень зума.
+// Размер зажат сверху: у MapLibre жёсткий лимит 255px на text-size, за ним подпись не рисуется.
+const LABEL_REFERENCE_ZOOM = 18;
+const MAX_TEXT_SIZE = 60;
+const MIN_TEXT_SIZE = 6;
+function zoomScaledSize(sizeExpr){
+  const safe = ['max', MIN_TEXT_SIZE, ['min', MAX_TEXT_SIZE, sizeExpr]];
+  return ['interpolate', ['exponential', 2], ['zoom'],
+    LABEL_REFERENCE_ZOOM - 6, ['/', safe, 64],
+    LABEL_REFERENCE_ZOOM + 2, ['*', safe, 4]
+  ];
+}
+
+let collection = null;
+let shapeLayerIds = [];
+let nextUid = 1;
+
+function addLayers(){
+  map.addSource(SOURCE_ID, { type:'geojson', data: EMPTY_FC });
+  // Подписи — отдельный точечный источник (центр фигуры): точку нельзя разрезать границей
+  // внутреннего тайла, поэтому overlap можно включить безопасно и подпись никогда не пропадёт.
+  map.addSource(LABELS_SOURCE_ID, { type:'geojson', data: EMPTY_FC });
+
+  map.addLayer({
+    id:'shapes-label', type:'symbol', source:LABELS_SOURCE_ID,
+    filter:['!=', ['coalesce', ['get','label'], ''], ''],
+    layout:{
+      'text-field':['coalesce', ['get','label'], ''],
+      // coalesce обязан идти ДО to-number: to-number(null) даёт 0, а не null.
+      'text-size':zoomScaledSize(['to-number', ['coalesce', ['get','textSize'], 28]]),
+      'text-rotate':['to-number', ['coalesce', ['get','textAngle'], 0]],
+      'text-offset':['coalesce', ['get','textOffset'], ['literal',[0,0]]],
+      'text-rotation-alignment':'map',
+      'text-allow-overlap':true,
+      'text-ignore-placement':true,
+      'text-font':['Noto Sans Regular']
+    },
+    paint:{
+      'text-color':'#ffffff',
+      'text-halo-color':'#000000',
+      'text-halo-width':1.2
+    }
+  });
+}
+map.on('load', () => { addLayers(); selectLevel(DEFAULT_LEVEL); });
+
+// У каждого объекта своя пара слоёв: в MapLibre слой рисует все свои фигуры одним проходом,
+// поэтому в общем line-слое обводка нижнего объекта легла бы поверх заливки верхнего.
+function rebuildShapeLayers(){
+  if(!map.getLayer('shapes-label')) return;
+  for(const id of shapeLayerIds){ if(map.getLayer(id)) map.removeLayer(id); }
+  shapeLayerIds = [];
+  for(const feature of collection?.features || []){
+    const uid = feature.properties.__uid;
+    const filter = ['==', ['get','__uid'], uid];
+    const type = feature.geometry?.type;
+    if(type === 'Polygon' || type === 'MultiPolygon'){
+      const fillId = `shape-fill-${uid}`, lineId = `shape-line-${uid}`;
+      map.addLayer({ id:fillId, type:'fill', source:SOURCE_ID, filter,
+        paint:{ 'fill-color':['coalesce', ['get','fillColor'], '#8f623f'], 'fill-opacity':1 } }, 'shapes-label');
+      map.addLayer({ id:lineId, type:'line', source:SOURCE_ID, filter,
+        paint:{ 'line-color':OUTLINE_COLOR_EXPR, 'line-width':OUTLINE_WIDTH } }, 'shapes-label');
+      shapeLayerIds.push(fillId, lineId);
+    } else if(type === 'LineString' || type === 'MultiLineString'){
+      const lineId = `shape-line-${uid}`;
+      map.addLayer({ id:lineId, type:'line', source:SOURCE_ID, filter,
+        paint:{ 'line-color':OUTLINE_COLOR_EXPR, 'line-width':OUTLINE_WIDTH } }, 'shapes-label');
+      shapeLayerIds.push(lineId);
+    } else if(type === 'Point' || type === 'MultiPoint'){
+      const pointId = `shape-point-${uid}`;
+      map.addLayer({ id:pointId, type:'circle', source:SOURCE_ID, filter,
+        paint:{
+          'circle-color':['coalesce', ['get','fillColor'], '#8f623f'],
+          'circle-radius':7,
+          'circle-stroke-color':OUTLINE_COLOR_EXPR,
+          'circle-stroke-width':OUTLINE_WIDTH
+        } }, 'shapes-label');
+      shapeLayerIds.push(pointId);
+    }
+  }
+}
+
+function flatBounds(geometry){
+  const flat = geometry.coordinates.flat(Infinity);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for(let i = 0; i < flat.length; i += 2){
+    minX = Math.min(minX, flat[i]);   maxX = Math.max(maxX, flat[i]);
+    minY = Math.min(minY, flat[i+1]); maxY = Math.max(maxY, flat[i+1]);
+  }
+  return [minX, minY, maxX, maxY];
+}
+function labelPointsCollection(fc){
+  return {
+    type:'FeatureCollection',
+    features:(fc?.features || [])
+      .filter(f => f.properties.label)
+      .map(f => {
+        const [minX, minY, maxX, maxY] = flatBounds(f.geometry);
+        return {
+          type:'Feature',
+          properties:{
+            label:f.properties.label, textSize:f.properties.textSize,
+            textAngle:f.properties.textAngle, textOffset:f.properties.textOffset
+          },
+          geometry:{ type:'Point', coordinates:[(minX + maxX) / 2, (minY + maxY) / 2] }
+        };
+      })
+  };
+}
+function fitToCollection(fc){
+  if(!fc.features.length) return;
+  let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
+  for(const feature of fc.features){
+    const [x1, y1, x2, y2] = flatBounds(feature.geometry);
+    minX = Math.min(minX, x1); minY = Math.min(minY, y1);
+    maxX = Math.max(maxX, x2); maxY = Math.max(maxY, y2);
+  }
+  if(isFinite(minX)) map.fitBounds([[minX, minY], [maxX, maxY]], { padding:60, duration:0, maxZoom:21 });
+}
+function setData(){
+  map.getSource(SOURCE_ID)?.setData(collection || EMPTY_FC);
+  map.getSource(LABELS_SOURCE_ID)?.setData(labelPointsCollection(collection));
+}
+
+/* ---------- переключение этажей ---------- */
+const levelCache = new Map();   // файл читается один раз, дальше берём из памяти
+let activeLevel = null;
+let loadToken = 0;              // отбрасываем ответ, если успели переключить этаж
+
+function setStatus(text, isError = false){
+  $('#stText').textContent = text;
+  $('#status').classList.toggle('err', isError);
+}
+function syncButtons(){
+  for(const level of LEVELS){
+    $(`#level-${level.id}`).setAttribute('aria-pressed', String(level.id === activeLevel));
+  }
+}
+async function selectLevel(id, { fit = true } = {}){
+  const level = LEVELS.find(l => l.id === id);
+  if(!level || id === activeLevel) return;
+  activeLevel = id;
+  syncButtons();
+  const token = ++loadToken;
+  setStatus(`level ${level.title} · loading…`);
+  try {
+    if(!levelCache.has(id)){
+      const response = await fetch(level.file);
+      if(!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const fc = await response.json();
+      for(const feature of fc.features || []){
+        if(!feature.properties) feature.properties = {};
+        if(!feature.properties.__uid) feature.properties.__uid = `v${nextUid++}`;
+      }
+      levelCache.set(id, fc);
+    }
+    if(token !== loadToken) return;   // пока грузили, выбрали другой этаж
+    collection = levelCache.get(id);
+    setData();
+    rebuildShapeLayers();
+    if(fit) fitToCollection(collection);
+    setStatus(`level ${level.title} · ${collection.features.length} objects`);
+  } catch(err){
+    if(token !== loadToken) return;
+    collection = null;
+    setData();
+    rebuildShapeLayers();
+    setStatus(`level ${level.title} · failed to load ${level.file}: ${err.message}`, true);
+  }
+}
+
+const levelsBox = $('#levels');
+for(const level of LEVELS){
+  const button = document.createElement('button');
+  button.id = `level-${level.id}`;
+  button.textContent = level.title;
+  button.setAttribute('aria-pressed', 'false');
+  button.onclick = () => selectLevel(level.id);
+  levelsBox.appendChild(button);
+}
+// Цифры и буквы на клавиатуре — быстрый переход между этажами.
+window.addEventListener('keydown', event => {
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+  const key = event.key.toLowerCase();
+  if(['1','2','3','4'].includes(key)) selectLevel(key);
+  else if(key === 'a') selectLevel(activeLevel === 'a1' ? 'a2' : 'a1');
+});
+</script>
+</body>
+</html>
