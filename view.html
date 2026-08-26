@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Сама страница на GitHub Pages тоже кешируется; эти заголовки просят браузер перепроверять её. -->
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <title>Levels Viewer</title>
 
@@ -272,8 +275,14 @@ function selectLevel(id){
   else setStatus(`level ${level.title} · failed to load ${level.file}: ${levelError.get(id)}`, true);
 }
 
+// Уникальный на каждую загрузку страницы токен против кеша. GitHub Pages отдаёт .geojson
+// с Cache-Control: max-age=600 и раздаёт их через CDN, поэтому после заливки новых файлов
+// браузер ещё долго показывает старые (а у старых нет textSize — и подписи рисуются размером
+// по умолчанию, то есть огромными). Параметр в URL пробивает и браузерный кеш, и кеш CDN,
+// no-store дополнительно запрещает браузеру складывать ответ к себе.
+const CACHE_BUST = Date.now();
 async function loadLevel(level){
-  const response = await fetch(level.file);
+  const response = await fetch(`${level.file}?v=${CACHE_BUST}`, { cache:'no-store' });
   if(!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   const fc = await response.json();
   // __index задаёт и адрес слоя в пуле, и порядок отрисовки — как в исходном файле.
