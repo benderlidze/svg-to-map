@@ -155,7 +155,7 @@
       <input type="range" id="labelAngle" min="0" max="360" step="1" value="0" disabled>
 
       <div class="lab">Text size</div>
-      <input type="number" id="labelSize" min="6" max="72" step="1" value="28" disabled>
+      <input type="number" id="labelSize" min="6" max="60" step="1" value="28" disabled>
 
       <div class="lab">Text offset from centroid <i>ems</i></div>
       <div class="row">
@@ -285,11 +285,24 @@ function rebuildShapeLayers(){
   }
 }
 
-// Пробовал масштабировать text-size вместе с зумом через interpolate(zoom)+get(textSize) —
-// в этой версии MapLibre GL JS такая комбинация «зум + значение из свойств объекта» для text-size
-// не работает: движок использует только зум-часть и молча игнорирует данные объекта (проверено
-// на чистом MapLibre без нашего кода — оба объекта с разным textSize рендерились одним размером).
-// Поэтому размер снова обычный, не зависящий от зума, зато поле «Text size» реально работает.
+// Текст масштабируется вместе с картой, иначе при отдалении комната сжимается, а подпись — нет,
+// и текст «улетает» за пределы своей комнаты. Шаг стопов ровно 8 зумов при отношении значений 256
+// даёт удвоение размера на каждый уровень зума — точно как у самих полигонов. На LABEL_REFERENCE_ZOOM
+// размер в пикселях равен ровно тому, что задано в поле «Text size».
+// MAX_TEXT_SIZE: у MapLibre жёсткий лимит 255px на text-size — при выходе за него движок ругается
+// («Value for text-size is >= 255») и подпись не рисуется вовсе. Верхний стоп даёт size*4,
+// поэтому размер зажимаем так, чтобы 4*size оставалось с запасом под лимитом.
+const LABEL_REFERENCE_ZOOM = 18;
+const MAX_TEXT_SIZE = 60;
+const MIN_TEXT_SIZE = 6;
+function zoomScaledSize(sizeExpr){
+  const safe = ['max', MIN_TEXT_SIZE, ['min', MAX_TEXT_SIZE, sizeExpr]];
+  return ['interpolate', ['exponential', 2], ['zoom'],
+    LABEL_REFERENCE_ZOOM - 6, ['/', safe, 64],
+    LABEL_REFERENCE_ZOOM + 2, ['*', safe, 4]
+  ];
+}
+
 const LABELS_SOURCE_ID = 'labels';
 
 function addLayers(){
@@ -309,7 +322,7 @@ function addLayers(){
       'text-field':['coalesce', ['get','label'], ''],
       // Важно: coalesce ДО to-number, а не наоборот — to-number(null) даёт 0, а не null,
       // и тогда coalesce(to-number(null), 14) вернёт 0 (невидимый текст), а не 14.
-      'text-size':['to-number', ['coalesce', ['get','textSize'], 28]],
+      'text-size':zoomScaledSize(['to-number', ['coalesce', ['get','textSize'], 28]]),
       'text-rotate':['to-number', ['coalesce', ['get','textAngle'], 0]],
       // text-offset — массив из двух чисел; выражение обязано целиком вернуть массив,
       // отдельные вычисляемые числа внутрь него так не вставить — поэтому храним готовый [x,y].
@@ -523,7 +536,7 @@ $('#labelAngle').oninput = e => {
   updateSelected({ textAngle:angle });
 };
 $('#labelSize').onchange = e => {
-  const size = Math.max(6, Math.min(72, +e.target.value || 14));
+  const size = Math.max(MIN_TEXT_SIZE, Math.min(MAX_TEXT_SIZE, +e.target.value || 28));
   e.target.value = String(size);
   updateSelected({ textSize:size });
 };
