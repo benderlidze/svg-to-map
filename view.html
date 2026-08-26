@@ -141,8 +141,6 @@ function zoomScaledSize(sizeExpr){
 }
 
 let collection = null;
-let shapeLayerIds = [];
-let nextUid = 1;
 
 function addLayers(){
   map.addSource(SOURCE_ID, { type:'geojson', data: EMPTY_FC });
@@ -171,41 +169,34 @@ function addLayers(){
     }
   });
 }
-map.on('load', () => { addLayers(); selectLevel(DEFAULT_LEVEL); });
+map.on('load', () => { addLayers(); preloadLevels(); });
 
-// У каждого объекта своя пара слоёв: в MapLibre слой рисует все свои фигуры одним проходом,
-// поэтому в общем line-слое обводка нижнего объекта легла бы поверх заливки верхнего.
-function rebuildShapeLayers(){
-  if(!map.getLayer('shapes-label')) return;
-  for(const id of shapeLayerIds){ if(map.getLayer(id)) map.removeLayer(id); }
-  shapeLayerIds = [];
-  for(const feature of collection?.features || []){
-    const uid = feature.properties.__uid;
-    const filter = ['==', ['get','__uid'], uid];
-    const type = feature.geometry?.type;
-    if(type === 'Polygon' || type === 'MultiPolygon'){
-      const fillId = `shape-fill-${uid}`, lineId = `shape-line-${uid}`;
-      map.addLayer({ id:fillId, type:'fill', source:SOURCE_ID, filter,
-        paint:{ 'fill-color':['coalesce', ['get','fillColor'], '#8f623f'], 'fill-opacity':1 } }, 'shapes-label');
-      map.addLayer({ id:lineId, type:'line', source:SOURCE_ID, filter,
-        paint:{ 'line-color':OUTLINE_COLOR_EXPR, 'line-width':OUTLINE_WIDTH } }, 'shapes-label');
-      shapeLayerIds.push(fillId, lineId);
-    } else if(type === 'LineString' || type === 'MultiLineString'){
-      const lineId = `shape-line-${uid}`;
-      map.addLayer({ id:lineId, type:'line', source:SOURCE_ID, filter,
-        paint:{ 'line-color':OUTLINE_COLOR_EXPR, 'line-width':OUTLINE_WIDTH } }, 'shapes-label');
-      shapeLayerIds.push(lineId);
-    } else if(type === 'Point' || type === 'MultiPoint'){
-      const pointId = `shape-point-${uid}`;
-      map.addLayer({ id:pointId, type:'circle', source:SOURCE_ID, filter,
-        paint:{
-          'circle-color':['coalesce', ['get','fillColor'], '#8f623f'],
-          'circle-radius':7,
-          'circle-stroke-color':OUTLINE_COLOR_EXPR,
-          'circle-stroke-width':OUTLINE_WIDTH
-        } }, 'shapes-label');
-      shapeLayerIds.push(pointId);
-    }
+// Слои создаются ОДИН раз — пулом на максимальное число объектов среди всех этажей.
+// Раньше при каждом переключении слои удалялись и создавались заново, и картинка сильно мигала:
+// пересборка стиля на несколько десятков слоёв заметна глазом. Теперь переключение этажа — это
+// только setData на источнике, слои не трогаются вообще, поэтому мигания нет.
+// У каждого объекта своя пара слоёв (а не один общий fill + один общий line), потому что слой в
+// MapLibre рисует все свои фигуры одним проходом — в общем line-слое обводка нижнего объекта
+// легла бы поверх заливки верхнего. Привязка «слой ↔ объект» идёт по __index: в источнике всегда
+// лежит ровно один этаж, поэтому индекс однозначно адресует фигуру, а порядок слоёв повторяет
+// порядок объектов в файле.
+function buildLayerPool(size){
+  for(let i = 0; i < size; i++){
+    const filter = ['==', ['get','__index'], i];
+    map.addLayer({ id:`shape-fill-${i}`, type:'fill', source:SOURCE_ID,
+      filter:['all', filter, ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'MultiPolygon']]],
+      paint:{ 'fill-color':['coalesce', ['get','fillColor'], '#8f623f'], 'fill-opacity':1 } }, 'shapes-label');
+    map.addLayer({ id:`shape-line-${i}`, type:'line', source:SOURCE_ID,
+      filter:['all', filter, ['!=', ['geometry-type'], 'Point'], ['!=', ['geometry-type'], 'MultiPoint']],
+      paint:{ 'line-color':OUTLINE_COLOR_EXPR, 'line-width':OUTLINE_WIDTH } }, 'shapes-label');
+    map.addLayer({ id:`shape-point-${i}`, type:'circle', source:SOURCE_ID,
+      filter:['all', filter, ['any', ['==', ['geometry-type'], 'Point'], ['==', ['geometry-type'], 'MultiPoint']]],
+      paint:{
+        'circle-color':['coalesce', ['get','fillColor'], '#8f623f'],
+        'circle-radius':7,
+        'circle-stroke-color':OUTLINE_COLOR_EXPR,
+        'circle-stroke-width':OUTLINE_WIDTH
+      } }, 'shapes-label');
   }
 }
 
@@ -252,9 +243,10 @@ function setData(){
 }
 
 /* ---------- переключение этажей ---------- */
-const levelCache = new Map();   // файл читается один раз, дальше берём из памяти
+const levelData = new Map();    // все этажи загружаются сразу при старте
+const levelError = new Map();
 let activeLevel = null;
-let loadToken = 0;              // отбрасываем ответ, если успели переключить этаж
+let ready = false;
 
 function setStatus(text, isError = false){
   $('#stText').textContent = text;
@@ -262,40 +254,58 @@ function setStatus(text, isError = false){
 }
 function syncButtons(){
   for(const level of LEVELS){
-    $(`#level-${level.id}`).setAttribute('aria-pressed', String(level.id === activeLevel));
+    const button = $(`#level-${level.id}`);
+    button.setAttribute('aria-pressed', String(level.id === activeLevel));
+    button.disabled = !ready;
   }
 }
-async function selectLevel(id, { fit = true } = {}){
+// Переключение — только подмена данных источника. Зум и положение карты не трогаем:
+// переключая этажи, пользователь смотрит на одно и то же место здания.
+function selectLevel(id){
   const level = LEVELS.find(l => l.id === id);
-  if(!level || id === activeLevel) return;
+  if(!ready || !level || id === activeLevel) return;
   activeLevel = id;
   syncButtons();
-  const token = ++loadToken;
-  setStatus(`level ${level.title} · loading…`);
-  try {
-    if(!levelCache.has(id)){
-      const response = await fetch(level.file);
-      if(!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      const fc = await response.json();
-      for(const feature of fc.features || []){
-        if(!feature.properties) feature.properties = {};
-        if(!feature.properties.__uid) feature.properties.__uid = `v${nextUid++}`;
-      }
-      levelCache.set(id, fc);
+  collection = levelData.get(id) || null;
+  setData();
+  if(collection) setStatus(`level ${level.title} · ${collection.features.length} objects`);
+  else setStatus(`level ${level.title} · failed to load ${level.file}: ${levelError.get(id)}`, true);
+}
+
+async function loadLevel(level){
+  const response = await fetch(level.file);
+  if(!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  const fc = await response.json();
+  // __index задаёт и адрес слоя в пуле, и порядок отрисовки — как в исходном файле.
+  (fc.features || []).forEach((feature, index) => {
+    if(!feature.properties) feature.properties = {};
+    feature.properties.__index = index;
+  });
+  return fc;
+}
+async function preloadLevels(){
+  setStatus(`loading ${LEVELS.length} levels…`);
+  const results = await Promise.allSettled(LEVELS.map(loadLevel));
+  let maxFeatures = 0;
+  results.forEach((result, i) => {
+    const level = LEVELS[i];
+    if(result.status === 'fulfilled'){
+      levelData.set(level.id, result.value);
+      maxFeatures = Math.max(maxFeatures, result.value.features?.length || 0);
+    } else {
+      levelError.set(level.id, result.reason?.message || 'unknown error');
+      console.warn(`Не удалось загрузить ${level.file}:`, result.reason);
     }
-    if(token !== loadToken) return;   // пока грузили, выбрали другой этаж
-    collection = levelCache.get(id);
-    setData();
-    rebuildShapeLayers();
-    if(fit) fitToCollection(collection);
-    setStatus(`level ${level.title} · ${collection.features.length} objects`);
-  } catch(err){
-    if(token !== loadToken) return;
-    collection = null;
-    setData();
-    rebuildShapeLayers();
-    setStatus(`level ${level.title} · failed to load ${level.file}: ${err.message}`, true);
-  }
+  });
+  buildLayerPool(maxFeatures);
+  ready = true;
+  const failed = LEVELS.filter(l => levelError.has(l.id));
+  const start = LEVELS.find(l => l.id === DEFAULT_LEVEL && levelData.has(l.id))
+    || LEVELS.find(l => levelData.has(l.id));
+  if(!start){ setStatus('no levels could be loaded', true); syncButtons(); return; }
+  selectLevel(start.id);
+  fitToCollection(collection);   // подгоняем вид один раз на старте, дальше зум не трогаем
+  if(failed.length) setStatus(`${$('#stText').textContent} · failed: ${failed.map(l => l.title).join(', ')}`, true);
 }
 
 const levelsBox = $('#levels');
@@ -304,6 +314,7 @@ for(const level of LEVELS){
   button.id = `level-${level.id}`;
   button.textContent = level.title;
   button.setAttribute('aria-pressed', 'false');
+  button.disabled = true;
   button.onclick = () => selectLevel(level.id);
   levelsBox.appendChild(button);
 }

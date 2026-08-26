@@ -71,7 +71,7 @@
         "outlineColor": "#000000",
         "label": "Future Phase",
         "textAngle": 22,
-        "textSize": 18,
+        "textSize": 16,
         "level": "a2"
       },
       "geometry": {
@@ -701,7 +701,7 @@
         "outlineColor": "#000000",
         "level": "a2",
         "label": "Pr.Patio",
-        "textSize": 14,
+        "textSize": 10,
         "textAngle": 21
       },
       "geometry": {
@@ -744,7 +744,7 @@
         "outlineColor": "#000000",
         "level": "a2",
         "label": "Pr.Patio",
-        "textSize": 14,
+        "textSize": 10,
         "textAngle": 22
       },
       "geometry": {
@@ -787,7 +787,7 @@
         "outlineColor": "#000000",
         "level": "a2",
         "label": "Pr.Patio",
-        "textSize": 14,
+        "textSize": 10,
         "textAngle": 22
       },
       "geometry": {
@@ -830,7 +830,7 @@
         "outlineColor": "#000000",
         "level": "a2",
         "label": "Pr.Patio",
-        "textSize": 14,
+        "textSize": 10,
         "textAngle": 22
       },
       "geometry": {
@@ -873,7 +873,7 @@
         "outlineColor": "#000000",
         "level": "a2",
         "label": "Pr.Patio",
-        "textSize": 14,
+        "textSize": 10,
         "textAngle": 22
       },
       "geometry": {
@@ -916,7 +916,7 @@
         "outlineColor": "#000000",
         "level": "a2",
         "label": "Pr.Patio",
-        "textSize": 14,
+        "textSize": 10,
         "textAngle": 22
       },
       "geometry": {
@@ -958,7 +958,8 @@
         "fillColor": "#8f623f",
         "outlineColor": "#000000",
         "level": "a2",
-        "label": "A07"
+        "label": "A07",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -999,7 +1000,8 @@
         "fillColor": "#8f623f",
         "outlineColor": "#000000",
         "level": "a2",
-        "label": "A08"
+        "label": "A08",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1040,7 +1042,8 @@
         "fillColor": "#8f623f",
         "outlineColor": "#000000",
         "level": "a2",
-        "label": "A09"
+        "label": "A09",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1081,7 +1084,8 @@
         "fillColor": "#8f623f",
         "outlineColor": "#000000",
         "level": "a2",
-        "label": "A10"
+        "label": "A10",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1122,7 +1126,8 @@
         "fillColor": "#8f623f",
         "outlineColor": "#000000",
         "level": "a2",
-        "label": "A11"
+        "label": "A11",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1163,7 +1168,8 @@
         "fillColor": "#8f623f",
         "outlineColor": "#000000",
         "level": "a2",
-        "label": "A12"
+        "label": "A12",
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
