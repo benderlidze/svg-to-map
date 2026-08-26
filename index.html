@@ -45,6 +45,7 @@
     color:var(--ink);padding:6px 8px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
   textarea{min-height:94px;resize:vertical;line-height:1.45}
   #allGeoJson{min-height:210px;white-space:pre;tab-size:2}
+  #allGeoJson.bad{border-color:#8c3a3a}
   select{
     width:100%;background:#0b1017;border:1px solid var(--line);border-radius:6px;
     color:var(--ink);padding:6px 8px;font-size:12px}
@@ -58,9 +59,13 @@
   button.pri{background:var(--acc);border-color:var(--acc);color:#1a1205;font-weight:600}
   button.pri:hover{background:#ffc46b}
   button.locked{background:#24543f;border-color:#3d8b69;color:#dff8eb}
+  #cutShape[aria-pressed=true]{background:var(--acc2);border-color:var(--acc2);color:#04101f;font-weight:600}
   button:disabled,input:disabled{opacity:.5;cursor:not-allowed}
   hr{border:0;border-top:1px solid var(--line);margin:0}
   .hint{color:var(--dim);font-size:11px;line-height:1.5}
+  .hint:empty{display:none}
+  .hint.ok{color:#7fe0a8}
+  .hint.err{color:#ff9c9c}
   .hint kbd{background:#0b1017;border:1px solid var(--line);border-radius:4px;padding:0 4px;
     font-family:ui-monospace,Menlo,monospace;font-size:10px}
 
@@ -137,16 +142,26 @@
     <div class="grp">
       <div class="lab">Свойства полигона <i id="featureId">не выбран</i></div>
       <button class="pri" id="drawPolygon" aria-pressed="false" disabled>Рисовать полигон</button>
+      <button id="cutShape" aria-pressed="false" disabled title="Разрезать полигоны линией">✂ Разрезать линией</button>
       <textarea id="featureProps" spellcheck="false" placeholder='{"name":"Участок", "type":"building"}' disabled></textarea>
       <div class="row"><button id="saveProps" disabled>Сохранить props</button><button id="exportGeoJson" disabled>Скачать GeoJSON</button></div>
-      <div class="hint">Нарисуйте или нажмите на полигон. <kbd>Shift</kbd> или <kbd>Ctrl</kbd> — следующий отрезок под углом, кратным 90°, к предыдущему. Свойства задаются в формате JSON.</div>
+      <div class="row"><button id="undo" disabled title="Отменить (Ctrl+Z)">↶ Отменить</button><button id="redo" disabled title="Вернуть (Ctrl+Y)">↷ Вернуть</button></div>
+      <div class="hint" id="shapeStatus"></div>
+      <div class="hint">Что умеет инструмент:<br>
+        • <b>Рисовать полигон</b> — клики по карте, замыкание по первой вершине.<br>
+        • <b>Разрезать линией</b> — две точки: всё, что линия пересечёт, делится надвое.<br>
+        • <kbd>Shift</kbd> или <kbd>Ctrl</kbd> при рисовании и разрезе — угол, кратный 90°, к предыдущему отрезку.<br>
+        • <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> — отменить и вернуть изменения фигур.<br>
+        • <kbd>Esc</kbd> — выйти из режима рисования или разреза.<br>
+        • Клик по фигуре — выбрать и править свойства (JSON ниже); панель слева — правка вершин, перенос, поворот, удаление.</div>
     </div>
 
     <div class="grp">
       <div class="lab">Весь GeoJSON <i id="geoJsonCount">0 фигур</i></div>
-      <textarea id="allGeoJson" readonly spellcheck="false" aria-label="Весь текущий GeoJSON"></textarea>
-      <button id="copyGeoJson" disabled>Копировать GeoJSON</button>
-      <div class="hint">Поле обновляется во время рисования. Незавершённая фигура помечается свойством <code>"__draft": true</code>.</div>
+      <textarea id="allGeoJson" spellcheck="false" aria-label="Весь текущий GeoJSON" disabled></textarea>
+      <div class="row"><button class="pri" id="applyGeoJson" disabled>Применить</button><button id="copyGeoJson" disabled>Копировать</button></div>
+      <div class="hint" id="geoJsonStatus"></div>
+      <div class="hint">Поле редактируемое: вставьте или поправьте GeoJSON — фигуры на карте заменятся (применяется автоматически, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — сразу, <kbd>Esc</kbd> — вернуть текущее). Если документы вставлены один за другим, они склеиваются в один набор, повторы фигур отбрасываются. Незавершённая фигура помечается свойством <code>"__draft": true</code> и не импортируется.</div>
     </div>
 
     <div class="grp">
@@ -199,6 +214,7 @@
 <script type="module">
 import * as maplibregl from 'maplibre-gl';
 import { Geoman } from 'https://esm.sh/@geoman-io/maplibre-geoman-free@0.9.1?external=maplibre-gl';
+import polygonClipping from 'https://esm.sh/polygon-clipping@0.15.7';
 
 const KEY = 'svg-overlay-v6';
 const GM_KEY = 'svg-overlay-polygons-v1';
@@ -575,14 +591,28 @@ function currentGeoJson(){
   if(draft) collection.features.push(draft);
   return { collection, draft:!!draft };
 }
+function pluralRu(count, forms){
+  const tail = Math.abs(count) % 100, last = tail % 10;
+  if(tail > 10 && tail < 20) return forms[2];
+  if(last > 1 && last < 5) return forms[1];
+  return last === 1 ? forms[0] : forms[2];
+}
+const shapesWord = count => `${count} ${pluralRu(count, ['фигура','фигуры','фигур'])}`;
 let geoJsonFrame = 0;
 function updateGeoJsonView(){
   geoJsonFrame = 0;
   const { collection, draft } = currentGeoJson();
   const savedCount = collection.features.length - (draft ? 1 : 0);
-  $('#allGeoJson').value = JSON.stringify(collection, null, 2);
-  $('#geoJsonCount').textContent = `${savedCount} ${savedCount === 1 ? 'фигура' : 'фигур'}${draft ? ' + черновик' : ''}`;
+  const field = $('#allGeoJson');
+  // Пока в поле правят руками, не затираем текст автообновлением.
+  if(!geoJsonEdited && document.activeElement !== field){
+    field.value = JSON.stringify(collection, null, 2);
+    appliedGeoJsonText = field.value;
+  }
+  field.disabled = !geomanReady;
+  $('#geoJsonCount').textContent = `${shapesWord(savedCount)}${draft ? ' + черновик' : ''}`;
   $('#copyGeoJson').disabled = !geomanReady;
+  $('#applyGeoJson').disabled = !geomanReady;
 }
 function scheduleGeoJsonView(){
   if(!geoJsonFrame) geoJsonFrame = requestAnimationFrame(updateGeoJsonView);
@@ -593,6 +623,7 @@ function saveDrawings(){
   } catch(err) {
     console.warn('Не удалось сохранить полигоны:', err);
   }
+  pushHistory();
   scheduleGeoJsonView();
 }
 $('#copyGeoJson').onclick = async () => {
@@ -600,6 +631,379 @@ $('#copyGeoJson').onclick = async () => {
   try { await navigator.clipboard.writeText($('#allGeoJson').value); }
   catch { $('#allGeoJson').select(); document.execCommand('copy'); }
 };
+
+/* ---------- правка GeoJSON руками ---------- */
+const GEOMETRY_TYPES = ['Point','MultiPoint','LineString','MultiLineString','Polygon','MultiPolygon'];
+const APPLY_DELAY = 700;
+let geoJsonEdited = false;      // текст в поле отличается от карты
+let geoJsonApplying = false;
+let geoJsonApplyTimer = 0;
+let appliedGeoJsonText = null;  // последний применённый текст — чтобы не импортировать повторно
+
+function setGeoJsonStatus(text, kind = ''){
+  const status = $('#geoJsonStatus');
+  status.textContent = text;
+  status.className = `hint${kind ? ' ' + kind : ''}`;
+  $('#allGeoJson').classList.toggle('bad', kind === 'err');
+}
+// Координаты проверяем сами: geoman на битых числах падает молча.
+function checkCoordinates(node, type){
+  if(!Array.isArray(node) || !node.length) throw new Error(`пустые координаты в ${type}`);
+  if(typeof node[0] !== 'number') { node.forEach(item => checkCoordinates(item, type)); return; }
+  const [lng, lat] = node;
+  if(node.length < 2 || !Number.isFinite(lng) || !Number.isFinite(lat)) throw new Error(`координата в ${type} должна быть [lng, lat]`);
+  if(Math.abs(lat) > 90) throw new Error(`широта ${lat} вне диапазона — похоже, координаты переставлены местами`);
+}
+// Границы верхнеуровневых JSON-значений: вставили один документ следом за другим — разберём оба.
+function splitJsonDocuments(text){
+  const documents = [];
+  let depth = 0, start = -1, inString = false, escaped = false;
+  for(let i = 0; i < text.length; i++){
+    const char = text[i];
+    if(inString){
+      if(escaped) escaped = false;
+      else if(char === '\\') escaped = true;
+      else if(char === '"') inString = false;
+      continue;
+    }
+    if(char === '"') inString = true;
+    else if(char === '{' || char === '['){ if(depth++ === 0) start = i; }
+    else if(char === '}' || char === ']'){
+      if(--depth === 0 && start >= 0){ documents.push(text.slice(start, i + 1)); start = -1; }
+      if(depth < 0) return [];                                      // скобки не сходятся — пусть ругается JSON.parse
+    }
+  }
+  return depth === 0 ? documents : [];
+}
+function featuresFromValue(value){
+  const items = Array.isArray(value) ? value
+    : value?.type === 'FeatureCollection' ? (value.features || [])
+    : value?.type ? [value]
+    : null;
+  if(!items) throw new Error('нужен FeatureCollection, Feature или геометрия');
+  const features = [];
+  for(const item of items){
+    const feature = item?.type === 'Feature' ? item : { type:'Feature', properties:{}, geometry:item };
+    const geometry = feature.geometry;
+    if(!GEOMETRY_TYPES.includes(geometry?.type)) throw new Error(`неподдерживаемая геометрия: ${geometry?.type ?? 'нет geometry'}`);
+    checkCoordinates(geometry.coordinates, geometry.type);
+    if(feature.properties?.__draft) continue;                       // черновик рисования не импортируем
+    features.push({ ...feature, properties:{ ...(feature.properties || {}) } });
+  }
+  return features;
+}
+// Принимаем FeatureCollection, Feature, голую геометрию, массив фигур или несколько документов подряд.
+function parseGeoJsonInput(text){
+  if(!text.trim()) return { collection:{ type:'FeatureCollection', features:[] }, documents:0, duplicates:0 };
+  const parts = splitJsonDocuments(text);
+  const values = parts.length > 1 ? parts.map(part => JSON.parse(part)) : [JSON.parse(text)];
+  const features = [];
+  const seen = new Set();
+  let duplicates = 0;
+  for(const value of values){
+    for(const feature of featuresFromValue(value)){
+      const id = feature.id ?? feature.properties?.__gm_id;
+      if(id !== undefined && seen.has(id)){ duplicates += 1; continue; }  // тот же документ вставили дважды
+      if(id !== undefined) seen.add(id);
+      features.push(feature);
+    }
+  }
+  return { collection:{ type:'FeatureCollection', features }, documents:values.length, duplicates };
+}
+async function applyGeoJsonText(){
+  clearTimeout(geoJsonApplyTimer);
+  geoJsonApplyTimer = 0;
+  const text = $('#allGeoJson').value;
+  if(!geomanReady || geoJsonApplying) return false;
+  if(text === appliedGeoJsonText){ geoJsonEdited = false; return true; }
+  let parsed;
+  try { parsed = parseGeoJsonInput(text); }
+  catch(err){
+    setGeoJsonStatus(`Не применено — ${err.message}`, 'err');
+    return false;
+  }
+  geoJsonApplying = true;
+  try {
+    const stats = await replaceFeatures(parsed.collection);
+    geoJsonEdited = false;
+    appliedGeoJsonText = text;
+    if(parsed.documents > 1){
+      // Текст был склейкой нескольких документов — показываем нормализованный результат.
+      const field = $('#allGeoJson');
+      field.value = JSON.stringify(currentGeoJson().collection, null, 2);
+      appliedGeoJsonText = field.value;
+    }
+    const notes = [
+      parsed.documents > 1 ? `склеено документов: ${parsed.documents}` : '',
+      parsed.duplicates ? `пропущено повторов: ${parsed.duplicates}` : ''
+    ].filter(Boolean).join(', ');
+    setGeoJsonStatus(
+      (stats.failed
+        ? `Применено ${stats.success} из ${stats.total}, не удалось: ${stats.failed}`
+        : `Применено: ${shapesWord(stats.success)}`) + (notes ? ` (${notes})` : ''),
+      stats.failed ? 'err' : 'ok');
+    return !stats.failed;
+  } catch(err){
+    setGeoJsonStatus(`Ошибка импорта: ${err.message}`, 'err');
+    return false;
+  } finally {
+    geoJsonApplying = false;
+  }
+}
+// Полная замена набора фигур: один шаг истории, при сбое возвращаем прежнее состояние.
+async function replaceFeatures(collection){
+  historyLocked = true;
+  const backup = geoman.features.exportGeoJson();
+  try {
+    if(geoman.getActiveDrawModes().length) await geoman.disableDraw();
+    await geoman.features.deleteAll();
+    selectFeature(null);
+    const { stats } = await geoman.features.importGeoJson(collection);
+    saveDrawings();
+    updateGeoJsonView();
+    return stats;
+  } catch(err){
+    try {
+      await geoman.features.deleteAll();
+      await geoman.features.importGeoJson(backup);
+      saveDrawings();
+      updateGeoJsonView();
+    } catch(restoreErr){ console.warn('Не удалось восстановить фигуры:', restoreErr); }
+    throw err;
+  } finally {
+    historyLocked = false;
+    pushHistory();
+  }
+}
+function scheduleGeoJsonApply(delay = APPLY_DELAY){
+  clearTimeout(geoJsonApplyTimer);
+  geoJsonApplyTimer = setTimeout(applyGeoJsonText, delay);
+}
+$('#allGeoJson').addEventListener('input', () => {
+  geoJsonEdited = true;
+  setGeoJsonStatus('Изменено — применяется…');
+  scheduleGeoJsonApply();
+});
+$('#allGeoJson').addEventListener('paste', () => {
+  geoJsonEdited = true;
+  scheduleGeoJsonApply(0);
+});
+$('#allGeoJson').addEventListener('blur', () => { if(geoJsonEdited) applyGeoJsonText(); });
+$('#allGeoJson').addEventListener('keydown', event => {
+  if(event.key === 'Enter' && (event.ctrlKey || event.metaKey)){
+    event.preventDefault();
+    applyGeoJsonText();
+  } else if(event.key === 'Escape'){
+    event.preventDefault();
+    clearTimeout(geoJsonApplyTimer);
+    geoJsonEdited = false;
+    setGeoJsonStatus('');
+    $('#allGeoJson').blur();
+    updateGeoJsonView();
+  }
+});
+$('#applyGeoJson').onclick = () => applyGeoJsonText();
+
+/* ---------- история фигур: отмена и возврат ---------- */
+const HISTORY_LIMIT = 50;
+const featureHistory = [];  // снимки экспорта в виде строк JSON
+let historyIndex = -1;
+let historyLocked = false; // идёт восстановление или пакетный импорт — снимки не пишем
+
+function syncHistoryButtons(){
+  $('#undo').disabled = !geomanReady || historyIndex < 1;
+  $('#redo').disabled = !geomanReady || historyIndex >= featureHistory.length - 1;
+}
+// Один снимок на каждое изменение: рисование, правка вершин, перенос, удаление, импорт.
+function pushHistory(){
+  if(historyLocked || !geomanReady) return;
+  const text = JSON.stringify(geoman.features.exportGeoJson());
+  if(text === featureHistory[historyIndex]) return;
+  featureHistory.length = historyIndex + 1;
+  featureHistory.push(text);
+  if(featureHistory.length > HISTORY_LIMIT) featureHistory.shift();
+  historyIndex = featureHistory.length - 1;
+  syncHistoryButtons();
+}
+async function restoreHistory(index){
+  if(historyLocked || !geomanReady || index < 0 || index >= featureHistory.length) return false;
+  historyLocked = true;
+  try {
+    if(geoman.getActiveDrawModes().length) await geoman.disableDraw();
+    await geoman.features.deleteAll();
+    selectFeature(null);
+    await geoman.features.importGeoJson(JSON.parse(featureHistory[index]));
+    historyIndex = index;
+    saveDrawings();
+    updateGeoJsonView();
+    setGeoJsonStatus('');
+    return true;
+  } catch(err){
+    console.warn('Не удалось восстановить состояние:', err);
+    return false;
+  } finally {
+    historyLocked = false;
+    syncHistoryButtons();
+  }
+}
+async function undoFeatures(){
+  // Незаконченная фигура отменяется первой, стек истории при этом не трогаем.
+  if(activeLineDrawer()){ await geoman.disableDraw(); scheduleGeoJsonView(); return; }
+  await restoreHistory(historyIndex - 1);
+}
+const redoFeatures = () => restoreHistory(historyIndex + 1);
+$('#undo').onclick = undoFeatures;
+$('#redo').onclick = redoFeatures;
+window.addEventListener('keydown', event => {
+  if(!(event.ctrlKey || event.metaKey) || event.altKey) return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;   // в полях работает своя отмена
+  const key = event.key.toLowerCase();
+  if(key === 'z' && !event.shiftKey) { event.preventDefault(); undoFeatures(); }
+  else if(key === 'y' || (key === 'z' && event.shiftKey)) { event.preventDefault(); redoFeatures(); }
+});
+
+/* ---------- разрез фигур линией ---------- */
+const CUT_REACH = 4;          // во сколько раз секущая полуплоскость больше габаритов фигуры
+let cutMode = false, cutRunning = false;
+
+function setShapeStatus(text, kind = ''){
+  const status = $('#shapeStatus');
+  status.textContent = text;
+  status.className = `hint${kind ? ' ' + kind : ''}`;
+}
+function syncCutButton(){
+  $('#cutShape').setAttribute('aria-pressed', String(cutMode));
+  $('#cutShape').textContent = cutMode ? '✂ Отменить разрез' : '✂ Разрезать линией';
+}
+async function startCut(){
+  if(!geomanReady || cutMode) return stopCut();
+  if(geoman.getActiveDrawModes().length) await geoman.disableDraw();
+  cutMode = true;
+  syncCutButton();
+  setShapeStatus('Кликните две точки — линия разрежет все полигоны, которые пересечёт.');
+  await geoman.enableDraw('line');
+}
+async function stopCut({ keepStatus = false } = {}){
+  cutMode = false;
+  syncCutButton();
+  if(!keepStatus) setShapeStatus('');
+  if(geoman.getActiveDrawModes().length) await geoman.disableDraw();
+}
+async function restartCutLine(){
+  if(geoman.getActiveDrawModes().length) await geoman.disableDraw();
+  if(cutMode) await geoman.enableDraw('line');
+}
+// Полуплоскость по одну сторону от секущей: линия продлевается далеко за пределы фигуры.
+function halfPlane(a, b, side, reach){
+  const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const ux = (b[0] - a[0]) / length, uy = (b[1] - a[1]) / length;
+  const nx = -uy * side * reach, ny = ux * side * reach;
+  const start = [a[0] - ux * reach, a[1] - uy * reach];
+  const end = [b[0] + ux * reach, b[1] + uy * reach];
+  return [[start, end, [end[0] + nx, end[1] + ny], [start[0] + nx, start[1] + ny], start]];
+}
+// Строгое пересечение двух отрезков (касания и совпадения концов не считаем).
+function segmentsCross(p1, p2, p3, p4){
+  const side = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const d1 = side(p3, p4, p1), d2 = side(p3, p4, p2), d3 = side(p1, p2, p3), d4 = side(p1, p2, p4);
+  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0)) && d1 !== 0 && d2 !== 0 && d3 !== 0 && d4 !== 0;
+}
+// Режем только то, что нарисованный отрезок реально проходит насквозь: вошёл и вышел.
+function lineCrossesGeometry(geometry, a, b){
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+  let crossings = 0;
+  for(const rings of polygons){
+    for(const ring of rings){
+      for(let i = 0; i + 1 < ring.length; i++){
+        if(segmentsCross(a, b, ring[i], ring[i + 1]) && ++crossings >= 2) return true;
+      }
+    }
+  }
+  return false;
+}
+function splitGeometry(geometry, a, b){
+  if(!lineCrossesGeometry(geometry, a, b)) return null;
+  const flat = geometry.coordinates.flat(Infinity);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for(let i = 0; i < flat.length; i += 2){
+    minX = Math.min(minX, flat[i]);   maxX = Math.max(maxX, flat[i]);
+    minY = Math.min(minY, flat[i+1]); maxY = Math.max(maxY, flat[i+1]);
+  }
+  const reach = (Math.hypot(maxX - minX, maxY - minY) + Math.hypot(b[0] - a[0], b[1] - a[1])) * CUT_REACH;
+  if(!(reach > 0)) return null;
+  const left = polygonClipping.intersection(geometry.coordinates, halfPlane(a, b, 1, reach));
+  const right = polygonClipping.intersection(geometry.coordinates, halfPlane(a, b, -1, reach));
+  return left.length && right.length ? [left, right] : null;   // линия не пересекла фигуру насквозь
+}
+async function cutByLine(a, b){
+  const { features } = geoman.features.exportGeoJson();
+  const next = [];
+  let cutCount = 0;
+  for(const feature of features){
+    const type = feature.geometry?.type;
+    const pieces = (type === 'Polygon' || type === 'MultiPolygon') ? splitGeometry(feature.geometry, a, b) : null;
+    if(!pieces){ next.push(feature); continue; }
+    cutCount += 1;
+    for(const coordinates of pieces){
+      const properties = { ...feature.properties };
+      delete properties.__gm_id;                                // половинки получают новые id
+      next.push({ type:'Feature', properties, geometry:{ type:'MultiPolygon', coordinates } });
+    }
+  }
+  if(!cutCount){
+    setShapeStatus('Линия не пересекла ни один полигон насквозь.', 'err');
+    return false;
+  }
+  await replaceFeatures({ type:'FeatureCollection', features:next });
+  setShapeStatus(`Разрезано: ${shapesWord(cutCount)} → ${shapesWord(cutCount * 2)}`, 'ok');
+  return true;
+}
+async function runCut(a, b){
+  cutRunning = true;
+  try {
+    if(await cutByLine(a, b)) await stopCut({ keepStatus:true });
+    else await restartCutLine();            // ничего не разрезали — даём провести линию заново
+  } catch(err){
+    setShapeStatus(`Не удалось разрезать: ${err.message}`, 'err');
+    console.warn('Разрез не выполнен:', err);
+    await stopCut({ keepStatus:true });
+  } finally {
+    cutRunning = false;
+  }
+}
+// Двойным кликом geoman завершает линию сам — забираем её как секущую, а не оставляем на карте.
+async function consumeCutLine(featureData){
+  const busy = cutRunning;
+  const locked = historyLocked;
+  let segment = null;
+  if(!locked) historyLocked = true;
+  try {
+    const coordinates = featureData?.getGeoJson?.()?.geometry?.coordinates;
+    if(Array.isArray(coordinates) && coordinates.length >= 2) segment = [coordinates[0], coordinates[1]];
+    await geoman.features.delete(featureData);
+  } catch(err){
+    console.warn('Не удалось убрать секущую линию:', err);
+  }
+  if(!locked) historyLocked = false;
+  if(busy) return;                          // разрез уже идёт — линию просто убрали
+  if(segment) await runCut(segment[0], segment[1]);
+  else await restartCutLine();
+}
+$('#cutShape').onclick = () => (cutMode ? stopCut() : startCut());
+map.on('click', () => {
+  if(!cutMode || cutRunning) return;
+  // Точка попадает в рисовальщик асинхронно, поэтому забираем её на следующем кадре.
+  requestAnimationFrame(() => {
+    const points = activeLineDrawer()?.shapeLngLats;
+    if(!cutMode || cutRunning || !points || points.length < 2) return;
+    runCut(points[0], points[1]);
+  });
+});
+window.addEventListener('keydown', event => {
+  if(event.key !== 'Escape' || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+  if(cutMode) stopCut();
+  else if(geoman.getActiveDrawModes().length) geoman.disableDraw();
+});
 $('#saveProps').onclick = async () => {
   if(!selectedFeature) return;
   try {
@@ -627,8 +1031,12 @@ for(const eventName of ['gm:globaldrawmodetoggled','gm:globaleditmodetoggled','g
 }
 $('#drawPolygon').onclick = () => geoman.options.toggleMode('draw', 'polygon');
 map.on('gm:globaldrawmodetoggled', event => {
-  $('#drawPolygon').setAttribute('aria-pressed', !!event.enabled);
-  $('#drawPolygon').textContent = event.enabled ? 'Завершить рисование' : 'Рисовать полигон';
+  if(event.shape === 'polygon'){
+    $('#drawPolygon').setAttribute('aria-pressed', !!event.enabled);
+    $('#drawPolygon').textContent = event.enabled ? 'Завершить рисование' : 'Рисовать полигон';
+  }
+  // Режим линии могли выключить из панели geoman — снимаем и режим разреза.
+  if(event.shape === 'line' && !event.enabled && cutMode && !cutRunning) stopCut();
   scheduleGeoJsonView();
 });
 
@@ -718,7 +1126,12 @@ map.getCanvas().addEventListener('click', event => {
   setOrthoActive(orthoModifier(event));
   if(activeLineDrawer()) scheduleGeoJsonView();
 }, true);
-map.on('gm:create', event => { selectFeature(event.feature); saveDrawings(); });
+map.on('gm:create', event => {
+  const isCutLine = (cutMode || cutRunning) && event.feature?.shape === 'line';
+  if(isCutLine){ consumeCutLine(event.feature); return; }
+  selectFeature(event.feature);
+  saveDrawings();
+});
 map.on('gm:editstart', event => selectFeature(event.feature));
 map.on('gm:dragstart', event => selectFeature(event.feature));
 map.on('gm:editend', event => { if(event.feature) selectFeature(event.feature); saveDrawings(); });
@@ -730,6 +1143,7 @@ map.on('gm:remove', event => {
 map.on('gm:loaded', async () => {
   geomanReady = true;
   $('#drawPolygon').disabled = false;
+  $('#cutShape').disabled = false;
   $('#exportGeoJson').disabled = false;
   const raw = localStorage.getItem(GM_KEY);
   if(raw){
@@ -739,6 +1153,7 @@ map.on('gm:loaded', async () => {
   for(const layer of map.getStyle().layers || []){
     if(String(layer.id).startsWith('gm_') || String(layer.source || '').startsWith('gm_')) map.moveLayer(layer.id);
   }
+  pushHistory();                       // исходное состояние — первый шаг истории
   updateGeoJsonView();
 });
 map.on('click', event => {
