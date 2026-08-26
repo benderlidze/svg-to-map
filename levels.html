@@ -103,6 +103,18 @@
         <button id="copyBtn" disabled>Copy</button>
       </div>
       <div class="hint" id="loadStatus"></div>
+      <div class="lab" style="margin-top:4px">Set level for all objects</div>
+      <select id="levelAll" disabled>
+        <option value="">— choose —</option>
+        <option value="a1">A1</option>
+        <option value="a2">A2</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+      <div class="lab" style="margin-top:4px">Current GeoJSON <i id="geoJsonCount">0 objects</i></div>
+      <textarea id="geoJsonView" readonly spellcheck="false" style="min-height:140px"></textarea>
     </div>
 
     <hr>
@@ -122,10 +134,19 @@
       <div id="selInfo"></div>
 
       <div class="lab" style="margin-top:4px">Fill</div>
-      <input type="color" id="fillColor" value="#8f623f" disabled>
+      <div class="row">
+        <input type="color" id="fillColor" value="#8f623f" disabled style="flex:0 0 44px">
+        <input type="text" id="fillColorText" value="#8f623f" placeholder="#rrggbb" disabled>
+      </div>
 
-      <div class="lab">Outline <i>default — white</i></div>
-      <input type="color" id="outlineColor" value="#ffffff" disabled>
+      <div class="lab">Outline <i>default — black</i></div>
+      <div class="row" style="align-items:center">
+        <input type="color" id="outlineColor" value="#000000" disabled style="flex:0 0 44px">
+        <input type="text" id="outlineColorText" value="#000000" placeholder="#rrggbb" disabled>
+        <label style="flex:0 0 auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim);white-space:nowrap">
+          <input type="checkbox" id="outlineEnabled" checked disabled> shown
+        </label>
+      </div>
 
       <div class="lab">Text</div>
       <input type="text" id="labelText" placeholder="Name / number" disabled>
@@ -209,46 +230,64 @@ function setBase(b){
 /* ---------- данные ---------- */
 const SOURCE_ID = 'shapes';
 const EMPTY_FC = { type:'FeatureCollection', features:[] };
-const GEOM_POLY = ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'MultiPolygon']];
-const GEOM_POINT = ['any', ['==', ['geometry-type'], 'Point'], ['==', ['geometry-type'], 'MultiPoint']];
+// Обводка выключена — красим прозрачным, а не убираем слой: цвет в свойствах фигуры сохраняется,
+// включить обратно можно без повторного выбора цвета.
+const OUTLINE_COLOR_EXPR = ['case',
+  ['==', ['coalesce', ['get','outlineEnabled'], true], false], 'rgba(0,0,0,0)',
+  ['coalesce', ['get','outlineColor'], '#000000']
+];
+const OUTLINE_WIDTH = 2;
 
 let collection = null;    // текущий FeatureCollection в памяти
 let fileName = null;
 let selectedUid = null;
 let nextUid = 1;
+let shapeLayerIds = [];   // id слоёв текущего набора фигур, по одному-два на объект — для клика и очистки
+
+// В MapLibre/Mapbox нет z-index на объект: порядок рисования — это порядок слоёв (addLayer/beforeId),
+// и один слой типа fill/line рисует ВСЕ свои фигуры за один проход (сначала все заливки, потом ВСЕ
+// обводки) — поэтому обводка нижнего полигона всё равно ложится поверх заливки верхнего, если
+// обводки жить в общем слое. Чтобы «своя обводка поверх своей заливки, но под следующим объектом»
+// (настоящий порядок стека), у каждого объекта — собственная пара слоёв (или один для точки), и
+// слои вставляются перед shapes-label в порядке объектов массива: следующий объект добавляется
+// перед предыдущим лейблом — то есть оказывается выше. Порядок в файле = порядок стека на карте.
+function rebuildShapeLayers(){
+  if(!map.getLayer('shapes-label')) return;   // карта ещё не готова (addLayers не отработал)
+  for(const id of shapeLayerIds){ if(map.getLayer(id)) map.removeLayer(id); }
+  shapeLayerIds = [];
+  for(const feature of collection?.features || []){
+    const uid = feature.properties.__uid;
+    const filter = ['==', ['get','__uid'], uid];
+    const type = feature.geometry?.type;
+    if(type === 'Polygon' || type === 'MultiPolygon'){
+      const fillId = `shape-fill-${uid}`, lineId = `shape-line-${uid}`;
+      map.addLayer({ id:fillId, type:'fill', source:SOURCE_ID, filter,
+        paint:{ 'fill-color':['coalesce', ['get','fillColor'], '#8f623f'], 'fill-opacity':1 } }, 'shapes-label');
+      map.addLayer({ id:lineId, type:'line', source:SOURCE_ID, filter,
+        paint:{ 'line-color':OUTLINE_COLOR_EXPR, 'line-width':OUTLINE_WIDTH } }, 'shapes-label');
+      shapeLayerIds.push(fillId, lineId);
+    } else if(type === 'LineString' || type === 'MultiLineString'){
+      const lineId = `shape-line-${uid}`;
+      map.addLayer({ id:lineId, type:'line', source:SOURCE_ID, filter,
+        paint:{ 'line-color':OUTLINE_COLOR_EXPR, 'line-width':OUTLINE_WIDTH } }, 'shapes-label');
+      shapeLayerIds.push(lineId);
+    } else if(type === 'Point' || type === 'MultiPoint'){
+      const pointId = `shape-point-${uid}`;
+      map.addLayer({ id:pointId, type:'circle', source:SOURCE_ID, filter,
+        paint:{
+          'circle-color':['coalesce', ['get','fillColor'], '#8f623f'],
+          'circle-radius':7,
+          'circle-stroke-color':OUTLINE_COLOR_EXPR,
+          'circle-stroke-width':OUTLINE_WIDTH
+        } }, 'shapes-label');
+      shapeLayerIds.push(pointId);
+    }
+  }
+}
 
 function addLayers(){
   map.addSource(SOURCE_ID, { type:'geojson', data: EMPTY_FC });
 
-  map.addLayer({
-    id:'shapes-fill', type:'fill', source:SOURCE_ID, filter:GEOM_POLY,
-    paint:{
-      'fill-color':['coalesce', ['get','fillColor'], '#8f623f'],
-      'fill-opacity':1,
-      // Обводка через fill-outline-color рисуется внутри того же прохода, что и сама заливка —
-      // поэтому у каждого полигона её обводка ложится поверх его же заливки, а не всех заливок сразу
-      // (как было бы с отдельным line-слоем, залезающим на соседние фигуры).
-      'fill-outline-color':['coalesce', ['get','outlineColor'], '#ffffff']
-    }
-  });
-  // Линии для настоящих LineString-объектов; полигоны обводятся через fill-outline-color выше.
-  map.addLayer({
-    id:'shapes-line', type:'line', source:SOURCE_ID,
-    filter:['any', ['==', ['geometry-type'], 'LineString'], ['==', ['geometry-type'], 'MultiLineString']],
-    paint:{
-      'line-color':['coalesce', ['get','outlineColor'], '#ffffff'],
-      'line-width':1
-    }
-  });
-  map.addLayer({
-    id:'shapes-points', type:'circle', source:SOURCE_ID, filter:GEOM_POINT,
-    paint:{
-      'circle-color':['coalesce', ['get','fillColor'], '#8f623f'],
-      'circle-radius':7,
-      'circle-stroke-color':['coalesce', ['get','outlineColor'], '#ffffff'],
-      'circle-stroke-width':1
-    }
-  });
   map.addLayer({
     id:'shapes-label', type:'symbol', source:SOURCE_ID,
     filter:['!=', ['coalesce', ['get','label'], ''], ''],
@@ -284,6 +323,8 @@ map.on('load', addLayers);
 function setData(){
   const source = map.getSource(SOURCE_ID);
   if(source) source.setData(collection || EMPTY_FC);
+  $('#geoJsonView').value = JSON.stringify(exportCollection(), null, 2);
+  $('#geoJsonCount').textContent = `${collection?.features.length || 0} objects`;
 }
 function setSelectedFilter(){
   map.setFilter('shapes-selected', ['==', ['get','__uid'], selectedUid ?? '__none__']);
@@ -346,12 +387,15 @@ function loadGeoJsonText(text, name){
   collection = ensureUids(fc);
   fileName = name;
   setData();
+  rebuildShapeLayers();
   fitToCollection(collection);
   $('#fileName').textContent = name;
   $('#stFile').textContent = name;
   $('#stCount').textContent = String(collection.features.length);
   $('#exportBtn').disabled = false;
   $('#copyBtn').disabled = false;
+  $('#levelAll').disabled = false;
+  $('#levelAll').value = '';
   setLoadStatus(`Loaded: ${collection.features.length} objects`, 'ok');
 }
 function loadFile(file){
@@ -383,7 +427,7 @@ function selectFeature(uid){
 }
 function syncPanel(){
   const feature = selectedUid ? findFeature(selectedUid) : null;
-  const fields = ['#fillColor','#outlineColor','#labelText','#labelAngle','#labelSize','#labelOffsetX','#labelOffsetY','#levelName','#deselect'];
+  const fields = ['#fillColor','#fillColorText','#outlineColor','#outlineColorText','#outlineEnabled','#labelText','#labelAngle','#labelSize','#labelOffsetX','#labelOffsetY','#levelName','#deselect'];
   for(const sel of fields) $(sel).disabled = !feature;
   if(!feature){
     $('#selCount').textContent = 'none selected';
@@ -393,8 +437,9 @@ function syncPanel(){
   const p = feature.properties;
   $('#selCount').textContent = 'selected';
   $('#selInfo').textContent = feature.id != null ? String(feature.id) : feature.properties.__uid;
-  $('#fillColor').value = p.fillColor || '#8f623f';
-  $('#outlineColor').value = p.outlineColor || '#ffffff';
+  $('#fillColor').value = $('#fillColorText').value = p.fillColor || '#8f623f';
+  $('#outlineColor').value = $('#outlineColorText').value = p.outlineColor || '#000000';
+  $('#outlineEnabled').checked = p.outlineEnabled !== false;
   $('#labelText').value = p.label || '';
   $('#labelAngle').value = String(p.textAngle ?? 0);
   $('#vAngle').textContent = `${Math.round(p.textAngle ?? 0)}°`;
@@ -411,7 +456,7 @@ function updateSelected(patch){
   setData();
 }
 map.on('click', event => {
-  const hits = map.queryRenderedFeatures(event.point, { layers:['shapes-fill','shapes-line','shapes-points'] });
+  const hits = map.queryRenderedFeatures(event.point, { layers:shapeLayerIds });
   const hit = hits.find(f => f.properties?.__uid);
   selectFeature(hit ? hit.properties.__uid : null);
 });
@@ -420,8 +465,17 @@ window.addEventListener('keydown', e => {
   if(e.key === 'Escape' && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) selectFeature(null);
 });
 
-$('#fillColor').oninput = e => updateSelected({ fillColor:e.target.value });
-$('#outlineColor').oninput = e => updateSelected({ outlineColor:e.target.value });
+// Цвет и hex-текст рядом: правка любого из двух обновляет другой и саму фигуру.
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+function bindColorField(colorId, textId, prop){
+  const color = $(colorId), text = $(textId);
+  color.oninput = () => { text.value = color.value; updateSelected({ [prop]:color.value }); };
+  text.addEventListener('input', () => { if(HEX_COLOR.test(text.value)){ color.value = text.value; updateSelected({ [prop]:text.value }); } });
+  text.addEventListener('blur', () => { if(!HEX_COLOR.test(text.value)) text.value = color.value; });
+}
+bindColorField('#fillColor', '#fillColorText', 'fillColor');
+bindColorField('#outlineColor', '#outlineColorText', 'outlineColor');
+$('#outlineEnabled').onchange = e => updateSelected({ outlineEnabled:e.target.checked });
 $('#labelText').oninput = e => updateSelected({ label:e.target.value });
 $('#labelAngle').oninput = e => {
   const angle = +e.target.value || 0;
@@ -437,6 +491,12 @@ const updateOffset = () => updateSelected({ textOffset:[+$('#labelOffsetX').valu
 $('#labelOffsetX').oninput = updateOffset;
 $('#labelOffsetY').oninput = updateOffset;
 $('#levelName').onchange = e => updateSelected({ level:e.target.value || undefined });
+$('#levelAll').onchange = e => {
+  const level = e.target.value || undefined;
+  for(const feature of collection?.features || []) feature.properties.level = level;
+  setData();
+  if(selectedUid) syncPanel();
+};
 
 /* ---------- экспорт ---------- */
 function exportCollection(){
