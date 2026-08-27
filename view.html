@@ -76,12 +76,13 @@ const $ = s => document.querySelector(s);
 
 // Этажи сверху вниз, как их принято перечислять в здании.
 const LEVELS = [
-  { id:'4',  title:'4',  file:'4th.geojson' },
-  { id:'3',  title:'3',  file:'3rd.geojson' },
-  { id:'2',  title:'2',  file:'2nd.geojson' },
-  { id:'1',  title:'1',  file:'1st.geojson' },
-  { id:'a1', title:'A1', file:'a1.geojson' },
-  { id:'a2', title:'A2', file:'a2.geojson' }
+  { id:'4',  title:'4',  files:['4th.geojson'] },
+  { id:'3',  title:'3',  files:['3rd.geojson'] },
+  { id:'2',  title:'2',  files:['2nd.geojson'] },
+  { id:'1',  title:'1',  files:['1st.geojson'] },
+  // A1/A2 — по два файла на этаж: сам уровень плюс отдельно нарисованная парковка того же этажа.
+  { id:'a1', title:'A1', files:['a1.geojson', 'parking-a1.geojson'] },
+  { id:'a2', title:'A2', files:['a2.geojson', 'parking-a2.geojson'] }
 ];
 const DEFAULT_LEVEL = '1';
 
@@ -272,7 +273,7 @@ function selectLevel(id){
   collection = levelData.get(id) || null;
   setData();
   if(collection) setStatus(`level ${level.title} · ${collection.features.length} objects`);
-  else setStatus(`level ${level.title} · failed to load ${level.file}: ${levelError.get(id)}`, true);
+  else setStatus(`level ${level.title} · failed to load: ${levelError.get(id)}`, true);
 }
 
 // Уникальный на каждую загрузку страницы токен против кеша. GitHub Pages отдаёт .geojson
@@ -281,12 +282,19 @@ function selectLevel(id){
 // по умолчанию, то есть огромными). Параметр в URL пробивает и браузерный кеш, и кеш CDN,
 // no-store дополнительно запрещает браузеру складывать ответ к себе.
 const CACHE_BUST = Date.now();
+async function loadFile(file){
+  const response = await fetch(`${file}?v=${CACHE_BUST}`, { cache:'no-store' });
+  if(!response.ok) throw new Error(`${file}: ${response.status} ${response.statusText}`);
+  return response.json();
+}
+// Уровень может состоять из нескольких файлов (этаж + отдельно нарисованная парковка того же
+// этажа) — грузим их все и склеиваем в один FeatureCollection, порядок файлов задаёт порядок
+// отрисовки (следующий файл ложится поверх предыдущего).
 async function loadLevel(level){
-  const response = await fetch(`${level.file}?v=${CACHE_BUST}`, { cache:'no-store' });
-  if(!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  const fc = await response.json();
+  const collections = await Promise.all(level.files.map(loadFile));
+  const fc = { type:'FeatureCollection', features: collections.flatMap(c => c.features || []) };
   // __index задаёт и адрес слоя в пуле, и порядок отрисовки — как в исходном файле.
-  (fc.features || []).forEach((feature, index) => {
+  fc.features.forEach((feature, index) => {
     if(!feature.properties) feature.properties = {};
     feature.properties.__index = index;
   });
@@ -303,7 +311,7 @@ async function preloadLevels(){
       maxFeatures = Math.max(maxFeatures, result.value.features?.length || 0);
     } else {
       levelError.set(level.id, result.reason?.message || 'unknown error');
-      console.warn(`Не удалось загрузить ${level.file}:`, result.reason);
+      console.warn(`Не удалось загрузить уровень ${level.id}:`, result.reason);
     }
   });
   buildLayerPool(maxFeatures);
