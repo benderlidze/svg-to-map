@@ -592,11 +592,7 @@
         "__gm_id": "feature-11-part-2",
         "__gm_shape": "polygon",
         "partIndex": 2,
-        "sourceGeometryType": "MultiPolygon",
-        "fillColor": "#91908b",
-        "outlineColor": "#cccccc",
-        "outlineEnabled": false,
-        "level": "a2"
+        "sourceGeometryType": "MultiPolygon"
       },
       "id": "feature-11-part-2"
     },
@@ -855,11 +851,7 @@
         "__gm_id": "feature-11-part-3",
         "__gm_shape": "polygon",
         "partIndex": 3,
-        "sourceGeometryType": "MultiPolygon",
-        "fillColor": "#cccccc",
-        "outlineColor": "#cccccc",
-        "outlineEnabled": false,
-        "level": "a2"
+        "sourceGeometryType": "MultiPolygon"
       },
       "id": "feature-11-part-3"
     },
@@ -1086,11 +1078,7 @@
         "__gm_id": "feature-11-part-4",
         "__gm_shape": "polygon",
         "partIndex": 4,
-        "sourceGeometryType": "MultiPolygon",
-        "fillColor": "#cccccc",
-        "outlineColor": "#cccccc",
-        "outlineEnabled": false,
-        "level": "a2"
+        "sourceGeometryType": "MultiPolygon"
       },
       "id": "feature-11-part-4"
     },
@@ -1179,10 +1167,7 @@
         "stroke": "#91908B",
         "strokeWidth": 0.3,
         "__gm_id": "feature-13",
-        "__gm_shape": "polygon",
-        "fillColor": "#cccccc",
-        "outlineColor": "#91908b",
-        "level": "a2"
+        "__gm_shape": "polygon"
       },
       "id": "feature-13"
     },
@@ -1267,10 +1252,7 @@
         "stroke": "#91908B",
         "strokeWidth": 0.3,
         "__gm_id": "feature-15",
-        "__gm_shape": "polygon",
-        "fillColor": "#cccccc",
-        "outlineColor": "#91908b",
-        "level": "a2"
+        "__gm_shape": "polygon"
       },
       "id": "feature-15"
     },
@@ -1359,10 +1341,7 @@
         "stroke": "#91908B",
         "strokeWidth": 0.3,
         "__gm_id": "feature-17",
-        "__gm_shape": "polygon",
-        "fillColor": "#cccccc",
-        "outlineColor": "#91908b",
-        "level": "a2"
+        "__gm_shape": "polygon"
       },
       "id": "feature-17"
     },
@@ -1833,11 +1812,7 @@
         "__gm_id": "feature-11-part-1",
         "__gm_shape": "polygon",
         "partIndex": 1,
-        "sourceGeometryType": "MultiPolygon",
-        "fillColor": "#cccccc",
-        "outlineColor": "#cccccc",
-        "outlineEnabled": true,
-        "level": "a2"
+        "sourceGeometryType": "MultiPolygon"
       },
       "id": "feature-11-part-1"
     },
@@ -1864,10 +1839,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-19",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-19"
     },
@@ -1894,10 +1866,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-21",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-21"
     },
@@ -1924,10 +1893,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-23",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-23"
     },
@@ -1954,10 +1920,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-25",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-25"
     },
@@ -1984,10 +1947,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-27",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-27"
     },
@@ -2014,10 +1974,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-29",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-29"
     },
@@ -2044,10 +2001,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-31",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-31"
     },
@@ -2074,10 +2028,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-33",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-33"
     },
@@ -2104,10 +2055,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-35",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-35"
     },
@@ -2134,10 +2082,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-37",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-37"
     },
@@ -2164,10 +2109,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-39",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-39"
     },
@@ -2194,10 +2136,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-41",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-41"
     },
@@ -2224,10 +2163,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-43",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-43"
     },
@@ -2254,10 +2190,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-45",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-45"
     },
@@ -2284,10 +2217,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-47",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-47"
     },
@@ -2314,10 +2244,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-49",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-49"
     },
@@ -2344,10 +2271,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-51",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-51"
     },
@@ -2374,10 +2298,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-53",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-53"
     },
@@ -2404,10 +2325,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-55",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-55"
     },
@@ -2434,10 +2352,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-57",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-57"
     },
@@ -2464,10 +2379,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-59",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-59"
     },
@@ -2494,10 +2406,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-61",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-61"
     },
@@ -2524,10 +2433,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-63",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-63"
     },
@@ -2554,10 +2460,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-65",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-65"
     },
@@ -2584,10 +2487,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-67",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-67"
     },
@@ -2614,10 +2514,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-69",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-69"
     },
@@ -2644,10 +2541,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-71",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-71"
     },
@@ -2674,10 +2568,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-73",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-73"
     },
@@ -2704,10 +2595,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-75",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-75"
     },
@@ -2734,10 +2622,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-77",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-77"
     },
@@ -2764,10 +2649,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-79",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-79"
     },
@@ -2794,10 +2676,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-81",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-81"
     },
@@ -2824,10 +2703,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-83",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-83"
     },
@@ -2854,10 +2730,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-85",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-85"
     },
@@ -2884,10 +2757,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-87",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-87"
     },
@@ -2914,10 +2784,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-89",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-89"
     },
@@ -2944,10 +2811,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-91",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-91"
     },
@@ -2974,10 +2838,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-93",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-93"
     },
@@ -3004,10 +2865,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-95",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-95"
     },
@@ -3034,10 +2892,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-97",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-97"
     },
@@ -3064,10 +2919,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-99",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-99"
     },
@@ -3094,10 +2946,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-101",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-101"
     },
@@ -3124,10 +2973,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-103",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-103"
     },
@@ -3154,10 +3000,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-105",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-105"
     },
@@ -3184,10 +3027,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-107",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-107"
     },
@@ -3214,10 +3054,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-109",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-109"
     },
@@ -3244,10 +3081,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-111",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-111"
     },
@@ -3274,10 +3108,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-113",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-113"
     },
@@ -3304,10 +3135,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-115",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-115"
     },
@@ -3334,10 +3162,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-117",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-117"
     },
@@ -3376,10 +3201,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-119",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-119"
     },
@@ -3406,10 +3228,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.2001,
         "__gm_id": "feature-121",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-121"
     },
@@ -3436,10 +3255,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-123",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-123"
     },
@@ -3466,10 +3282,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-125",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-125"
     },
@@ -3496,10 +3309,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-127",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-127"
     },
@@ -3526,10 +3336,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-129",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-129"
     },
@@ -3556,10 +3363,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-131",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-131"
     },
@@ -3586,10 +3390,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-133",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-133"
     },
@@ -3616,10 +3417,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-135",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-135"
     },
@@ -3646,10 +3444,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-137",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-137"
     },
@@ -3676,10 +3471,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-139",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-139"
     },
@@ -3706,10 +3498,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-141",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-141"
     },
@@ -3736,10 +3525,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-143",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-143"
     },
@@ -3766,10 +3552,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-145",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-145"
     },
@@ -3796,10 +3579,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-147",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-147"
     },
@@ -3826,10 +3606,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-149",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-149"
     },
@@ -3856,10 +3633,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-151",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-151"
     },
@@ -3886,10 +3660,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-153",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-153"
     },
@@ -3916,10 +3687,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-155",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-155"
     },
@@ -3946,10 +3714,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-157",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-157"
     },
@@ -3976,10 +3741,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-159",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-159"
     },
@@ -4006,10 +3768,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-161",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-161"
     },
@@ -4036,10 +3795,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-163",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-163"
     },
@@ -4066,10 +3822,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-165",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-165"
     },
@@ -4096,10 +3849,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-167",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-167"
     },
@@ -4126,10 +3876,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-169",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-169"
     },
@@ -4156,10 +3903,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-171",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-171"
     },
@@ -4186,10 +3930,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-173",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-173"
     },
@@ -4216,10 +3957,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-175",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-175"
     },
@@ -4246,10 +3984,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-177",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-177"
     },
@@ -4276,10 +4011,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-179",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-179"
     },
@@ -4306,10 +4038,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-181",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-181"
     },
@@ -4336,10 +4065,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-183",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-183"
     },
@@ -4366,10 +4092,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-185",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-185"
     },
@@ -4396,10 +4119,7 @@
         "stroke": "white",
         "strokeWidth": 0.2001,
         "__gm_id": "feature-187",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-187"
     },
@@ -4426,10 +4146,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-189",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-189"
     },
@@ -4456,10 +4173,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-191",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-191"
     },
@@ -4486,10 +4200,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-193",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-193"
     },
@@ -4516,10 +4227,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-195",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-195"
     },
@@ -4546,10 +4254,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-197",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-197"
     },
@@ -4576,10 +4281,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-199",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-199"
     },
@@ -4606,10 +4308,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-201",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-201"
     },
@@ -4636,10 +4335,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-203",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-203"
     },
@@ -4666,10 +4362,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-205",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-205"
     },
@@ -4696,10 +4389,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-207",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-207"
     },
@@ -4726,10 +4416,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-209",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-209"
     },
@@ -4756,10 +4443,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-211",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-211"
     },
@@ -4786,10 +4470,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-213",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-213"
     },
@@ -4816,10 +4497,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-215",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-215"
     },
@@ -4846,10 +4524,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-217",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-217"
     },
@@ -4876,10 +4551,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-219",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-219"
     },
@@ -4906,10 +4578,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-221",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-221"
     },
@@ -4936,10 +4605,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-223",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-223"
     },
@@ -4966,10 +4632,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-225",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-225"
     },
@@ -4996,10 +4659,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-227",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-227"
     },
@@ -5026,10 +4686,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-229",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-229"
     },
@@ -5056,10 +4713,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-231",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-231"
     },
@@ -5086,10 +4740,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-233",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-233"
     },
@@ -5116,10 +4767,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-235",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-235"
     },
@@ -5146,10 +4794,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-237",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-237"
     },
@@ -5176,10 +4821,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-239",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-239"
     },
@@ -5206,10 +4848,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-241",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-241"
     },
@@ -5236,10 +4875,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-243",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-243"
     },
@@ -5266,10 +4902,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-245",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-245"
     },
@@ -5296,10 +4929,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-247",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-247"
     },
@@ -5326,10 +4956,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-249",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-249"
     },
@@ -5356,10 +4983,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-251",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-251"
     },
@@ -5386,10 +5010,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-253",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-253"
     },
@@ -5416,10 +5037,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-255",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-255"
     },
@@ -5446,10 +5064,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-257",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-257"
     },
@@ -5476,10 +5091,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-259",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-259"
     },
@@ -5506,10 +5118,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-261",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-261"
     },
@@ -5536,10 +5145,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-263",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-263"
     },
@@ -5566,10 +5172,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-265",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-265"
     },
@@ -5596,10 +5199,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-267",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-267"
     },
@@ -5626,10 +5226,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-269",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-269"
     },
@@ -5656,10 +5253,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-271",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-271"
     },
@@ -5686,10 +5280,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-273",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-273"
     },
@@ -5716,10 +5307,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-275",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-275"
     },
@@ -5746,10 +5334,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-277",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-277"
     },
@@ -5776,10 +5361,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-279",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-279"
     },
@@ -5806,10 +5388,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-281",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-281"
     },
@@ -5836,10 +5415,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-283",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-283"
     },
@@ -5866,10 +5442,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-285",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-285"
     },
@@ -5896,10 +5469,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-287",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-287"
     },
@@ -5926,10 +5496,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-289",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-289"
     },
@@ -5968,10 +5535,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-291",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-291"
     },
@@ -5998,10 +5562,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-293",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-293"
     },
@@ -6028,10 +5589,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-295",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-295"
     },
@@ -6058,10 +5616,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-297",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-297"
     },
@@ -6088,10 +5643,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-299",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-299"
     },
@@ -6118,10 +5670,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-301",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-301"
     },
@@ -6148,10 +5697,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-303",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-303"
     },
@@ -6178,10 +5724,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-305",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-305"
     },
@@ -6208,10 +5751,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-307",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-307"
     },
@@ -6238,10 +5778,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-309",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-309"
     },
@@ -6268,10 +5805,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-311",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-311"
     },
@@ -6298,10 +5832,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-313",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-313"
     },
@@ -6328,10 +5859,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-315",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-315"
     },
@@ -6358,10 +5886,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-317",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-317"
     },
@@ -6388,10 +5913,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-319",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-319"
     },
@@ -6418,10 +5940,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-321",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-321"
     },
@@ -6448,10 +5967,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-323",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-323"
     },
@@ -6478,10 +5994,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-325",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-325"
     },
@@ -6508,10 +6021,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-327",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-327"
     },
@@ -6538,10 +6048,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-329",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-329"
     },
@@ -6568,10 +6075,7 @@
         "stroke": "#CCCCCC",
         "strokeWidth": 0.4,
         "__gm_id": "feature-331",
-        "__gm_shape": "line",
-        "fillColor": "#8f623f",
-        "outlineColor": "#cccccc",
-        "level": "a2"
+        "__gm_shape": "line"
       },
       "id": "feature-331"
     }
