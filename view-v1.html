@@ -6,7 +6,10 @@
 <!-- Сама страница на GitHub Pages тоже кешируется; эти заголовки просят браузер перепроверять её. -->
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://unpkg.com/mapbox-gl@3.29.0/dist/mapbox-gl.css">
+<!-- Классическая (не-ESM) сборка: она сама грузит свой воркер через blob:, поэтому кросс-доменный
+     Worker с unpkg.com у неё не падает — в отличие от чанкованной ESM-сборки (проверено). -->
+<script src="https://unpkg.com/mapbox-gl@3.29.0/dist/mapbox-gl.js"></script>
 <title>Levels Viewer</title>
 
 <style>
@@ -17,7 +20,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font:13px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
   #map{position:absolute;inset:0}
-  .maplibregl-canvas{outline:none}
+  .mapboxgl-canvas{outline:none}
 
   #levels{
     position:absolute;top:12px;right:12px;z-index:5;
@@ -40,6 +43,7 @@
     background:rgba(21,27,35,.94);backdrop-filter:blur(8px)}
   #base button{background:transparent;border:0;color:var(--ink);padding:7px 12px;font-size:12px;cursor:pointer}
   #base button[aria-pressed=true]{background:var(--acc2);color:#04101f;font-weight:600}
+  #base button:disabled{opacity:.5;cursor:not-allowed}
 
   #status{position:absolute;left:12px;bottom:26px;z-index:5;background:rgba(21,27,35,.9);
     border:1px solid var(--line);border-radius:6px;padding:6px 9px;color:var(--dim);
@@ -52,8 +56,9 @@
 <div id="map"></div>
 
 <div id="base">
-  <button id="bOSM" aria-pressed="false">Map</button>
-  <button id="bSAT" aria-pressed="true">Satellite</button>
+  <button id="bOSM" aria-pressed="false" disabled>Map</button>
+  <button id="bSAT" aria-pressed="true" disabled>Satellite</button>
+  <button id="bMBX" aria-pressed="false" disabled>Mapbox</button>
 </div>
 
 <div id="levels">
@@ -62,17 +67,21 @@
 
 <div id="status"><b id="stText">loading…</b></div>
 
-<script type="importmap">
-{
-  "imports": {
-    "maplibre-gl": "https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs"
-  }
-}
-</script>
-<script type="module">
-import * as maplibregl from 'maplibre-gl';
+<script>
+// Классическая сборка объявляет глобальный mapboxgl (не ES-модуль). Имя не «Map» — так называется
+// и штатная структура данных JS, а classic-скрипт (не модуль) объявляет const в общей глобальной
+// области видимости: назови мы так же, ниже new Map() для levelData/levelError строила бы
+// mapboxgl-карту вместо коллекции и падала с «container must be a String or HTMLElement».
+const { Map: MapboxMap, NavigationControl, ScaleControl } = mapboxgl;
+mapboxgl.accessToken = 'pk.eyJ1IjoiY2Jnb2luZGVlcCIsImEiOiJjbXQ3bW92d3QwN2JkMnhweGNlYmUwaTJrIn0.hkq_CzwB7t5jcg9LTandbw';
 
 const $ = s => document.querySelector(s);
+
+// Стиль подключён напрямую через Mapbox Studio — движок карты пришлось сменить с MapLibre на
+// настоящий Mapbox GL JS: этот стиль — это ссылка-«импорт» на mapbox://styles/mapbox/standard
+// (новый 3D-стиль Mapbox, механизм style-fragments из Mapbox GL JS v3), MapLibre такое не умеет
+// вообще — у стиля 0 собственных слоёв и 0 источников, всё разрешается движком на лету.
+const MAPBOX_STYLE_URL = 'mapbox://styles/cbgoindeep/cmt7sxv0l001c01ssf9rk7lpk';
 
 // Этажи сверху вниз, как их принято перечислять в здании.
 const LEVELS = [
@@ -86,40 +95,82 @@ const LEVELS = [
 const DEFAULT_LEVEL = '1';
 
 /* ---------- карта ---------- */
-const map = new maplibregl.Map({
-  container: 'map',
-  style: {
-    version: 8,
-    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-    sources: {
-      osm: { type:'raster', tileSize:256,
-        tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        attribution:'© OpenStreetMap' },
-      sat: { type:'raster', tileSize:256, maxzoom:19,
-        tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-        attribution:'Esri, Maxar, Earthstar Geographics' }
-    },
-    layers: [
-      { id:'osm', type:'raster', source:'osm', layout:{visibility:'none'} },
-      { id:'sat', type:'raster', source:'sat' }
-    ]
+// Наш собственный растровый стиль (OSM/Satellite) — то, с чем страница стартует.
+const RASTER_STYLE = {
+  version: 8,
+  glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+  sources: {
+    osm: { type:'raster', tileSize:256,
+      tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      attribution:'© OpenStreetMap' },
+    sat: { type:'raster', tileSize:256, maxzoom:19,
+      tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      attribution:'Esri, Maxar, Earthstar Geographics' }
   },
+  layers: [
+    { id:'osm', type:'raster', source:'osm', layout:{visibility:'none'} },
+    { id:'sat', type:'raster', source:'sat' }
+  ]
+};
+
+const map = new MapboxMap({
+  container: 'map',
+  style: RASTER_STYLE,
   center: [-113.99607348716607, 46.86704363356705], zoom: 17.5, maxZoom: 22
 });
 map.boxZoom.disable();
-map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-left');
-map.addControl(new maplibregl.ScaleControl({maxWidth:120, unit:'metric'}), 'bottom-right');
+map.addControl(new NavigationControl({visualizePitch:true}), 'top-left');
+map.addControl(new ScaleControl({maxWidth:120, unit:'metric'}), 'bottom-right');
+
+// 'raster' — наш собственный стиль (OSM/Satellite слоями видимости), 'mbx' — стиль из Mapbox Studio.
+// Между ними переключаемся через setStyle, а это полная замена стиля: все наши источники и слои
+// (полигоны, подписи) исчезают и их нужно добавить заново после того, как новый стиль загрузится.
+let styleKind = 'raster';
+let base = 'sat';
+let poolSize = 0;
 
 $('#bOSM').onclick = () => setBase('osm');
 $('#bSAT').onclick = () => setBase('sat');
+$('#bMBX').onclick = () => setBase('mbx');
+
+function syncBaseButtons(){
+  $('#bOSM').setAttribute('aria-pressed', String(base === 'osm'));
+  $('#bSAT').setAttribute('aria-pressed', String(base === 'sat'));
+  $('#bMBX').setAttribute('aria-pressed', String(base === 'mbx'));
+}
+function applyRasterVisibility(){
+  map.setLayoutProperty('osm', 'visibility', base === 'osm' ? 'visible' : 'none');
+  map.setLayoutProperty('sat', 'visibility', base === 'sat' ? 'visible' : 'none');
+}
 function setBase(b){
-  $('#bOSM').setAttribute('aria-pressed', b==='osm');
-  $('#bSAT').setAttribute('aria-pressed', b==='sat');
-  map.setLayoutProperty('osm','visibility', b==='osm' ? 'visible':'none');
-  map.setLayoutProperty('sat','visibility', b==='sat' ? 'visible':'none');
+  if(!ready || b === base) return;
+  base = b;
+  syncBaseButtons();
+  if(b === 'mbx'){
+    if(styleKind !== 'mbx'){
+      styleKind = 'mbx';
+      map.once('style.load', reattachOverlay);
+      map.setStyle(MAPBOX_STYLE_URL);
+    }
+    return;
+  }
+  if(styleKind !== 'raster'){
+    styleKind = 'raster';
+    map.once('style.load', () => { reattachOverlay(); applyRasterVisibility(); });
+    map.setStyle(JSON.parse(JSON.stringify(RASTER_STYLE)));   // копия — setStyle мутирует объект стиля
+  } else {
+    applyRasterVisibility();
+  }
+}
+// После setStyle старый источник/слои пропадают вместе со старым стилем — пересобираем их
+// и заливаем текущие данные заново. Камеру (зум/центр) Mapbox GL сохраняет сам, трогать не надо.
+function reattachOverlay(){
+  addLayers();
+  buildLayerPool(poolSize);
+  setData();
 }
 
-/* ---------- отрисовка: тот же стиль, что и в редакторе ---------- */
+/* ---------- отрисовка фигур: полигоны/линии/точки этажа ---------- */
 const SOURCE_ID = 'shapes';
 const LABELS_SOURCE_ID = 'labels';
 const EMPTY_FC = { type:'FeatureCollection', features:[] };
@@ -131,7 +182,7 @@ const OUTLINE_COLOR_EXPR = ['case',
 const OUTLINE_WIDTH = 2;
 // Текст масштабируется вместе с картой, иначе при отдалении комната сжимается, а подпись — нет.
 // Шаг стопов в 8 зумов при отношении значений 256 даёт удвоение размера на каждый уровень зума.
-// Размер зажат сверху: у MapLibre жёсткий лимит 255px на text-size, за ним подпись не рисуется.
+// Размер зажат сверху: у Mapbox/MapLibre жёсткий лимит 255px на text-size, за ним подпись не рисуется.
 const LABEL_REFERENCE_ZOOM = 18;
 const MAX_TEXT_SIZE = 60;
 const MIN_TEXT_SIZE = 6;
@@ -144,6 +195,13 @@ function zoomScaledSize(sizeExpr){
 }
 
 let collection = null;
+
+// Mapbox GL JS запрашивает шрифты стека ПО ОТДЕЛЬНОСТИ (не одним файлом на весь стек, как
+// MapLibre) — наш собственный источник шрифтов (demotiles.maplibre.org) хранит только объединённый
+// файл «Open Sans Regular,Arial Unicode MS Regular» и падает 404 на запросах каждого шрифта
+// поодиночке. У самого стиля Mapbox (mbx) свой источник шрифтов через api.mapbox.com — там как раз
+// нужен родной стек Mapbox Standard, иначе не найдёт. Поэтому шрифт зависит от активной подложки.
+const FONT_FOR_STYLE = { raster:['Noto Sans Regular'], mbx:['Open Sans Regular','Arial Unicode MS Regular'] };
 
 function addLayers(){
   map.addSource(SOURCE_ID, { type:'geojson', data: EMPTY_FC });
@@ -163,7 +221,7 @@ function addLayers(){
       'text-rotation-alignment':'map',
       'text-allow-overlap':true,
       'text-ignore-placement':true,
-      'text-font':['Noto Sans Regular']
+      'text-font':FONT_FOR_STYLE[styleKind]
     },
     paint:{
       'text-color':'#ffffff',
@@ -172,17 +230,14 @@ function addLayers(){
     }
   });
 }
-map.on('load', () => { addLayers(); preloadLevels(); });
 
-// Слои создаются ОДИН раз — пулом на максимальное число объектов среди всех этажей.
-// Раньше при каждом переключении слои удалялись и создавались заново, и картинка сильно мигала:
-// пересборка стиля на несколько десятков слоёв заметна глазом. Теперь переключение этажа — это
-// только setData на источнике, слои не трогаются вообще, поэтому мигания нет.
-// У каждого объекта своя пара слоёв (а не один общий fill + один общий line), потому что слой в
-// MapLibre рисует все свои фигуры одним проходом — в общем line-слое обводка нижнего объекта
-// легла бы поверх заливки верхнего. Привязка «слой ↔ объект» идёт по __index: в источнике всегда
-// лежит ровно один этаж, поэтому индекс однозначно адресует фигуру, а порядок слоёв повторяет
-// порядок объектов в файле.
+// Слои создаются пулом на максимальное число объектов среди всех этажей (а не по одному на
+// фигуру), потому что при каждом переключении этажа/подложки слои удалять и создавать заново
+// заметно глазом — мигает. У каждого объекта своя пара слоёв, потому что слой в Mapbox/MapLibre
+// рисует все свои фигуры одним проходом — в общем line-слое обводка нижнего объекта легла бы
+// поверх заливки верхнего. Привязка «слой ↔ объект» идёт по __index: в источнике всегда лежит
+// ровно один этаж, поэтому индекс однозначно адресует фигуру, а порядок слоёв повторяет порядок
+// объектов в файле.
 function buildLayerPool(size){
   for(let i = 0; i < size; i++){
     const filter = ['==', ['get','__index'], i];
@@ -245,6 +300,8 @@ function setData(){
   map.getSource(LABELS_SOURCE_ID)?.setData(labelPointsCollection(collection));
 }
 
+map.on('load', () => { addLayers(); preloadLevels(); });
+
 /* ---------- переключение этажей ---------- */
 const levelData = new Map();    // все этажи загружаются сразу при старте
 const levelError = new Map();
@@ -261,6 +318,7 @@ function syncButtons(){
     button.setAttribute('aria-pressed', String(level.id === activeLevel));
     button.disabled = !ready;
   }
+  for(const id of ['#bOSM','#bSAT','#bMBX']) $(id).disabled = !ready;
 }
 // Переключение — только подмена данных источника. Зум и положение карты не трогаем:
 // переключая этажи, пользователь смотрит на одно и то же место здания.
@@ -306,7 +364,8 @@ async function preloadLevels(){
       console.warn(`Не удалось загрузить ${level.file}:`, result.reason);
     }
   });
-  buildLayerPool(maxFeatures);
+  poolSize = maxFeatures;
+  buildLayerPool(poolSize);
   ready = true;
   const failed = LEVELS.filter(l => levelError.has(l.id));
   const start = LEVELS.find(l => l.id === DEFAULT_LEVEL && levelData.has(l.id))

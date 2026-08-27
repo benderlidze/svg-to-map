@@ -146,10 +146,27 @@
       <textarea id="featureProps" spellcheck="false" placeholder='{"name":"Участок", "type":"building"}' disabled></textarea>
       <div class="row"><button id="saveProps" disabled>Сохранить props</button><button id="exportGeoJson" disabled>Скачать GeoJSON</button></div>
       <div class="row"><button id="undo" disabled title="Отменить (Ctrl+Z)">↶ Отменить</button><button id="redo" disabled title="Вернуть (Ctrl+Y)">↷ Вернуть</button></div>
+      <div class="lab" style="margin-top:4px">Клонировать выбранное</div>
+      <div class="row">
+        <input type="number" id="cloneCount" min="1" max="100" step="1" value="1" title="Сколько копий" disabled style="flex:0 0 62px">
+        <select id="cloneDirection" disabled>
+          <option value="long">вдоль длинной стороны</option>
+          <option value="short">вдоль короткой стороны</option>
+          <option value="east">вправо (восток)</option>
+          <option value="south">вниз (юг)</option>
+        </select>
+      </div>
+      <div class="row" style="align-items:center">
+        <button class="pri" id="cloneBtn" disabled>Клонировать</button>
+        <label style="flex:0 0 auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim);white-space:nowrap">
+          <input type="checkbox" id="cloneRenumber" checked disabled title="Увеличивать число в конце свойства name"> нумеровать
+        </label>
+      </div>
       <div class="hint" id="shapeStatus"></div>
       <div class="hint">Что умеет инструмент:<br>
         • <b>Рисовать полигон</b> — клики по карте, замыкание по первой вершине.<br>
         • <b>Разрезать линией</b> — две точки: всё, что линия пересечёт, делится надвое.<br>
+        • <b>Клонировать</b> — копии выбранной фигуры встают в ряд вплотную к ней; «нумеровать» увеличивает число в конце свойства <code>name</code>.<br>
         • <kbd>Shift</kbd> или <kbd>Ctrl</kbd> при рисовании и разрезе — угол, кратный 90°, к предыдущему отрезку.<br>
         • <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> — отменить и вернуть изменения фигур.<br>
         • <kbd>Esc</kbd> — выйти из режима рисования или разреза.<br>
@@ -559,6 +576,7 @@ function selectFeature(feature){
   $('#featureProps').value = selectedFeature
     ? JSON.stringify(customProperties(selectedFeature), null, 2)
     : '';
+  syncCloneButtons();
 }
 function draftGeoJson(){
   const drawer = activeLineDrawer();
@@ -989,6 +1007,103 @@ async function consumeCutLine(featureData){
   if(segment) await runCut(segment[0], segment[1]);
   else await restartCutLine();
 }
+/* ---------- клонирование выбранной фигуры ---------- */
+// Долгота «сжата» относительно широты в cos(широты) раз. Чтобы направления и длины считались
+// в настоящих пропорциях, переводим координаты в равномасштабное пространство и обратно.
+function lngScale(lat){ return Math.cos(lat * Math.PI / 180) || 1; }
+function geometryBounds(geometry){
+  const flat = geometry.coordinates.flat(Infinity);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for(let i = 0; i < flat.length; i += 2){
+    minX = Math.min(minX, flat[i]);   maxX = Math.max(maxX, flat[i]);
+    minY = Math.min(minY, flat[i+1]); maxY = Math.max(maxY, flat[i+1]);
+  }
+  return [minX, minY, maxX, maxY];
+}
+function translateCoordinates(node, dLng, dLat){
+  if(typeof node[0] === 'number') return [node[0] + dLng, node[1] + dLat];
+  return node.map(item => translateCoordinates(item, dLng, dLat));
+}
+function outerRing(geometry){
+  const c = geometry.coordinates;
+  if(geometry.type === 'Polygon') return c[0] || [];
+  if(geometry.type === 'MultiPolygon') return c[0]?.[0] || [];
+  if(geometry.type === 'LineString') return c;
+  if(geometry.type === 'MultiLineString') return c[0] || [];
+  return [];
+}
+// Шаг между копиями: направление и расстояние, на котором копия встаёт вплотную к оригиналу.
+function cloneStep(geometry, mode){
+  const [minX, minY, maxX, maxY] = geometryBounds(geometry);
+  const k = lngScale((minY + maxY) / 2);
+  if(mode === 'east')  return { dLng:(maxX - minX), dLat:0 };
+  if(mode === 'south') return { dLng:0, dLat:-(maxY - minY) };
+
+  const ring = outerRing(geometry).map(([lng, lat]) => [lng * k, lat]);
+  if(ring.length < 2) return { dLng:(maxX - minX), dLat:0 };
+  // Самое длинное ребро задаёт длинную сторону — для повёрнутых зданий надёжнее осей север/восток.
+  let ux = 1, uy = 0, best = -1;
+  for(let i = 0; i + 1 < ring.length; i++){
+    const ex = ring[i+1][0] - ring[i][0], ey = ring[i+1][1] - ring[i][1];
+    const len = Math.hypot(ex, ey);
+    if(len > best){ best = len; ux = ex / len; uy = ey / len; }
+  }
+  if(mode === 'short'){ const t = ux; ux = -uy; uy = t; }
+  // Габарит фигуры вдоль выбранного направления — копия встаёт ровно рядом, без нахлёста и щели.
+  let min = Infinity, max = -Infinity;
+  for(const [x, y] of ring){ const p = x * ux + y * uy; min = Math.min(min, p); max = Math.max(max, p); }
+  const extent = max - min;
+  return { dLng:(ux * extent) / k, dLat:uy * extent };
+}
+// «Дом 7» → «Дом 8», «A07» → «A08» с сохранением ведущих нулей; без числа — добавляем номер копии.
+function nextName(name, step){
+  const match = /^(.*?)(\d+)(\D*)$/.exec(name ?? '');
+  if(!match) return name ? `${name} ${step + 1}` : name;
+  const [, head, digits, tail] = match;
+  const value = String(Number(digits) + step);
+  return head + (value.length < digits.length ? value.padStart(digits.length, '0') : value) + tail;
+}
+function syncCloneButtons(){
+  const enabled = geomanReady && !!selectedFeature;
+  for(const id of ['#cloneCount','#cloneDirection','#cloneBtn','#cloneRenumber']) $(id).disabled = !enabled;
+}
+$('#cloneBtn').onclick = async () => {
+  if(!selectedFeature || !geomanReady) return;
+  const source = selectedFeature.getGeoJson?.();
+  if(!source?.geometry){ setShapeStatus('Не удалось прочитать выбранную фигуру.', 'err'); return; }
+  const count = Math.max(1, Math.min(100, Math.floor(+$('#cloneCount').value) || 1));
+  $('#cloneCount').value = String(count);
+  const { dLng, dLat } = cloneStep(source.geometry, $('#cloneDirection').value);
+  const renumber = $('#cloneRenumber').checked;
+  const sourceId = source.properties?.__gm_id ?? selectedFeature.id;
+
+  // Клонирование — одна операция: собираем новый набор целиком и заменяем разом,
+  // тогда это ровно один шаг истории и Ctrl+Z снимает все копии сразу.
+  const current = geoman.features.exportGeoJson();
+  const features = [];
+  for(const feature of current.features){
+    features.push(feature);
+    const id = feature.properties?.__gm_id ?? feature.id;
+    if(id !== sourceId) continue;
+    for(let i = 1; i <= count; i++){
+      const properties = { ...feature.properties };
+      delete properties.__gm_id;                      // копии получают собственные id при импорте
+      if(renumber && typeof properties.name === 'string') properties.name = nextName(feature.properties.name, i);
+      features.push({
+        type:'Feature', properties,
+        geometry:{ ...feature.geometry, coordinates:translateCoordinates(feature.geometry.coordinates, dLng * i, dLat * i) }
+      });
+    }
+  }
+  try {
+    await replaceFeatures({ type:'FeatureCollection', features });
+    setShapeStatus(`Добавлено копий: ${count}`, 'ok');
+  } catch(err){
+    setShapeStatus(`Не удалось клонировать: ${err.message}`, 'err');
+    console.warn('Клонирование не выполнено:', err);
+  }
+};
+
 $('#cutShape').onclick = () => (cutMode ? stopCut() : startCut());
 map.on('click', () => {
   if(!cutMode || cutRunning) return;
@@ -1145,6 +1260,7 @@ map.on('gm:loaded', async () => {
   $('#drawPolygon').disabled = false;
   $('#cutShape').disabled = false;
   $('#exportGeoJson').disabled = false;
+  syncCloneButtons();
   const raw = localStorage.getItem(GM_KEY);
   if(raw){
     try { await geoman.features.importGeoJson(JSON.parse(raw)); }

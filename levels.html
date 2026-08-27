@@ -174,8 +174,26 @@
         <option value="4">4</option>
       </select>
 
+      <div class="lab" style="margin-top:4px">Clone</div>
+      <div class="row">
+        <input type="number" id="cloneCount" min="1" max="100" step="1" value="1" title="How many copies" disabled style="flex:0 0 62px">
+        <select id="cloneDirection" disabled>
+          <option value="long">along long side</option>
+          <option value="short">along short side</option>
+          <option value="east">right (east)</option>
+          <option value="south">down (south)</option>
+        </select>
+      </div>
+      <div class="row" style="align-items:center">
+        <button class="pri" id="cloneBtn" disabled>Clone</button>
+        <label style="flex:0 0 auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim);white-space:nowrap">
+          <input type="checkbox" id="cloneRenumber" checked disabled> auto-number
+        </label>
+      </div>
+      <div class="hint" id="cloneStatus"></div>
+
       <button id="deselect" disabled style="margin-top:4px">Deselect</button>
-      <div class="hint">Click an object on the map to edit it. Changes apply instantly and are saved into the feature's properties on export.</div>
+      <div class="hint">Click an object on the map to edit it. Changes apply instantly and are saved into the feature's properties on export. Clones are placed in a row next to the original, edge to edge.</div>
     </div>
 
   </div>
@@ -352,7 +370,10 @@ function setData(){
   const labelsSource = map.getSource(LABELS_SOURCE_ID);
   if(labelsSource) labelsSource.setData(labelPointsCollection(collection));
   $('#geoJsonView').value = JSON.stringify(exportCollection(), null, 2);
-  $('#geoJsonCount').textContent = `${collection?.features.length || 0} objects`;
+  // Оба счётчика обновляются здесь, чтобы не разъезжались при клонировании и любых других правках.
+  const count = collection?.features.length || 0;
+  $('#geoJsonCount').textContent = `${count} objects`;
+  $('#stCount').textContent = String(count);
 }
 function setSelectedFilter(){
   map.setFilter('shapes-selected', ['==', ['get','__uid'], selectedUid ?? '__none__']);
@@ -444,7 +465,6 @@ function loadGeoJsonText(text, name){
   fitToCollection(collection);
   $('#fileName').textContent = name;
   $('#stFile').textContent = name;
-  $('#stCount').textContent = String(collection.features.length);
   $('#exportBtn').disabled = false;
   $('#copyBtn').disabled = false;
   $('#levelAll').disabled = false;
@@ -480,7 +500,7 @@ function selectFeature(uid){
 }
 function syncPanel(){
   const feature = selectedUid ? findFeature(selectedUid) : null;
-  const fields = ['#fillColor','#fillColorText','#outlineColor','#outlineColorText','#outlineEnabled','#labelText','#labelAngle','#labelSize','#labelOffsetX','#labelOffsetY','#levelName','#deselect'];
+  const fields = ['#fillColor','#fillColorText','#outlineColor','#outlineColorText','#outlineEnabled','#labelText','#labelAngle','#labelSize','#labelOffsetX','#labelOffsetY','#levelName','#cloneCount','#cloneDirection','#cloneBtn','#cloneRenumber','#deselect'];
   for(const sel of fields) $(sel).disabled = !feature;
   if(!feature){
     $('#selCount').textContent = 'none selected';
@@ -549,6 +569,87 @@ $('#levelAll').onchange = e => {
   for(const feature of collection?.features || []) feature.properties.level = level;
   setData();
   if(selectedUid) syncPanel();
+};
+
+/* ---------- клонирование объекта ---------- */
+function setCloneStatus(text, kind = ''){
+  const status = $('#cloneStatus');
+  status.textContent = text;
+  status.className = `hint${kind ? ' ' + kind : ''}`;
+}
+// Долгота «сжата» по сравнению с широтой в cos(широты) раз. Чтобы считать направления и длины
+// в настоящих пропорциях, переводим координаты в равномасштабное пространство и обратно.
+function lngScale(lat){ return Math.cos(lat * Math.PI / 180) || 1; }
+function translateCoordinates(node, dLng, dLat){
+  if(typeof node[0] === 'number') return [node[0] + dLng, node[1] + dLat];
+  return node.map(item => translateCoordinates(item, dLng, dLat));
+}
+// Вершины внешнего контура — по ним определяем оси фигуры.
+function outerRing(geometry){
+  const c = geometry.coordinates;
+  if(geometry.type === 'Polygon') return c[0] || [];
+  if(geometry.type === 'MultiPolygon') return c[0]?.[0] || [];
+  if(geometry.type === 'LineString') return c;
+  if(geometry.type === 'MultiLineString') return c[0] || [];
+  return [];
+}
+// Шаг между копиями: направление и расстояние, на котором копия встанет вплотную к оригиналу.
+function cloneStep(geometry, mode){
+  const [minX, minY, maxX, maxY] = flatBounds(geometry);
+  const k = lngScale((minY + maxY) / 2);
+  if(mode === 'east')  return { dLng:(maxX - minX), dLat:0 };
+  if(mode === 'south') return { dLng:0, dLat:-(maxY - minY) };
+
+  const ring = outerRing(geometry).map(([lng, lat]) => [lng * k, lat]);
+  if(ring.length < 2) return { dLng:(maxX - minX), dLat:0 };
+  // Самое длинное ребро задаёт длинную сторону фигуры — для повёрнутых зданий это надёжнее осей.
+  let ux = 1, uy = 0, best = -1;
+  for(let i = 0; i + 1 < ring.length; i++){
+    const ex = ring[i+1][0] - ring[i][0], ey = ring[i+1][1] - ring[i][1];
+    const len = Math.hypot(ex, ey);
+    if(len > best){ best = len; ux = ex / len; uy = ey / len; }
+  }
+  if(mode === 'short'){ const t = ux; ux = -uy; uy = t; }
+  // Габарит фигуры вдоль выбранного направления — чтобы копия встала ровно рядом, без нахлёста.
+  let min = Infinity, max = -Infinity;
+  for(const [x, y] of ring){ const p = x * ux + y * uy; min = Math.min(min, p); max = Math.max(max, p); }
+  const extent = max - min;
+  return { dLng:(ux * extent) / k, dLat:uy * extent };
+}
+// «A07» → «A08», «109» → «110»; ведущие нули сохраняются. Без числа в конце добавляем номер копии.
+function nextLabel(label, step){
+  const match = /^(.*?)(\d+)(\D*)$/.exec(label ?? '');
+  if(!match) return label ? `${label} ${step + 1}` : label;
+  const [, head, digits, tail] = match;
+  const value = String(Number(digits) + step);
+  return head + (value.length < digits.length ? value.padStart(digits.length, '0') : value) + tail;
+}
+$('#cloneBtn').onclick = () => {
+  const feature = selectedUid ? findFeature(selectedUid) : null;
+  if(!feature || !collection) return;
+  const count = Math.max(1, Math.min(100, Math.floor(+$('#cloneCount').value) || 1));
+  $('#cloneCount').value = String(count);
+  const { dLng, dLat } = cloneStep(feature.geometry, $('#cloneDirection').value);
+  const renumber = $('#cloneRenumber').checked;
+
+  const clones = [];
+  for(let i = 1; i <= count; i++){
+    const properties = { ...feature.properties };
+    delete properties.__gm_id;                       // id исходника не тащим в копии
+    properties.__uid = `f${nextUid++}`;
+    if(renumber && properties.label) properties.label = nextLabel(feature.properties.label, i);
+    clones.push({
+      type:'Feature', properties,
+      geometry:{ ...feature.geometry, coordinates:translateCoordinates(feature.geometry.coordinates, dLng * i, dLat * i) }
+    });
+  }
+  // Ставим копии сразу за оригиналом — порядок в массиве задаёт и порядок отрисовки.
+  const at = collection.features.indexOf(feature);
+  collection.features.splice(at + 1, 0, ...clones);
+  setData();
+  rebuildShapeLayers();
+  selectFeature(clones[clones.length - 1].properties.__uid);   // выделяем последнюю копию
+  setCloneStatus(`Added ${count} ${count === 1 ? 'copy' : 'copies'}`, 'ok');
 };
 
 /* ---------- экспорт ---------- */
