@@ -1,0 +1,395 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m1",
+        "type": "elevator",
+        "level": "a2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99608948941719,
+          46.866526434342205
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m2",
+        "type": "elevator",
+        "level": "a2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99708066242323,
+          46.8667507288764
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m3",
+        "type": "elevator",
+        "level": "a2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99718062588478,
+          46.86653235090486
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m4",
+        "type": "elevator",
+        "level": "a2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99706641799747,
+          46.866270318807594
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m5",
+        "type": "stairs",
+        "level": "a2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99707810285528,
+          46.86672232845545
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m6",
+        "type": "stairs",
+        "level": "a2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99712330201922,
+          46.86627089217974
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m7",
+        "type": "stairs",
+        "level": "a1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99712330201922,
+          46.86627089217974
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m8",
+        "type": "stairs",
+        "level": "a1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99707810285528,
+          46.86672232845545
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m9",
+        "type": "elevator",
+        "level": "a1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99708066242323,
+          46.8667507288764
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m10",
+        "type": "elevator",
+        "level": "a1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99718062588478,
+          46.86653235090486
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m11",
+        "type": "elevator",
+        "level": "a1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99706641799747,
+          46.866270318807594
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m12",
+        "type": "elevator",
+        "level": "a1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99608903982947,
+          46.866526434342205
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m13",
+        "type": "elevator",
+        "level": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.9960303,
+          46.8665029
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m14",
+        "type": "wc",
+        "level": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99597466329838,
+          46.86642956694607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m15",
+        "type": "wc",
+        "level": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99596806459745,
+          46.866401966920705
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m16",
+        "type": "elevator",
+        "level": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99574119998061,
+          46.866185522166354
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m17",
+        "type": "stairs",
+        "level": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99592390093426,
+          46.86616153819166
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m18",
+        "type": "elevator",
+        "level": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.9960303,
+          46.8665029
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m19",
+        "type": "elevator",
+        "level": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99574119998061,
+          46.866185522166354
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m20",
+        "type": "stairs",
+        "level": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99592390093426,
+          46.86616153819166
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m21",
+        "type": "stairs",
+        "level": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99592390093426,
+          46.86616153819166
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m22",
+        "type": "elevator",
+        "level": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99574119998061,
+          46.866185522166354
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m23",
+        "type": "elevator",
+        "level": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.9960303,
+          46.8665029
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m24",
+        "type": "elevator",
+        "level": "4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99574119998061,
+          46.866185522166354
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m25",
+        "type": "elevator",
+        "level": "4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.9960303,
+          46.8665029
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "__mid": "m26",
+        "type": "stairs",
+        "level": "4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -113.99592390093426,
+          46.86616153819166
+        ]
+      }
+    }
+  ]
+}

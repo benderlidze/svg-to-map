@@ -29,13 +29,28 @@
     box-shadow:0 10px 30px rgba(0,0,0,.45);
     display:flex;flex-direction:column;gap:6px;
   }
+  #levels{width:230px}
   #levels .lab{color:var(--dim);font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:0 2px 2px}
+  #levels hr{border:0;border-top:1px solid var(--line);margin:2px 0}
+  #levels .hint{color:var(--dim);font-size:10px;line-height:1.4}
+  #levelButtons{display:flex;flex-wrap:wrap;gap:6px}
   #levels button{
     background:#1d2632;border:1px solid var(--line);color:var(--ink);border-radius:6px;
-    padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;min-width:64px}
+    padding:7px 8px;font-size:12px;cursor:pointer}
   #levels button:hover{background:#26313f;border-color:#3b4855}
-  #levels button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#1a1205}
+  #levels button:disabled{opacity:.5;cursor:not-allowed}
   #levels button:focus-visible{outline:2px solid var(--acc2);outline-offset:1px}
+  #levelButtons button{padding:9px 14px;font-size:14px;font-weight:600;min-width:64px}
+  #levelButtons button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#1a1205}
+  #levels button.pri{background:var(--acc);border-color:var(--acc);color:#1a1205;font-weight:600}
+  #levels button.pri:hover{background:#ffc46b}
+  #levels button.pri[aria-pressed=true]{background:var(--acc2);border-color:var(--acc2);color:#04101f}
+  #levels select, #levels textarea{
+    width:100%;background:#0b1017;border:1px solid var(--line);border-radius:6px;
+    color:var(--ink);padding:6px 8px;font-size:12px;font-family:inherit}
+  #levels textarea{font-family:ui-monospace,Menlo,monospace;font-size:11px;min-height:130px;resize:vertical}
+  #levels .row{display:flex;gap:6px}
+  #levels .row>*{flex:1}
 
   #base{
     position:absolute;top:12px;left:52px;z-index:5;display:flex;
@@ -71,6 +86,28 @@
 
 <div id="levels">
   <div class="lab">Level</div>
+  <div id="levelButtons"></div>
+
+  <hr>
+  <div class="lab">Marker type</div>
+  <select id="markerType" disabled>
+    <option value="elevator">Elevator</option>
+    <option value="stairs">Stairs</option>
+    <option value="wc">WC</option>
+  </select>
+  <button id="placeMarkerBtn" class="pri" aria-pressed="false" disabled>Place marker</button>
+  <div class="hint">Click the map to place a marker of the selected type on the current level. When off, click an existing marker to select it, or drag it to move — only the marker on this floor moves.</div>
+
+  <div class="lab" style="margin-top:4px">Selected marker <i id="markerSelInfo">none</i></div>
+  <button id="deleteMarkerBtn" disabled>Delete marker</button>
+
+  <hr>
+  <div class="lab">Markers GeoJSON <i id="markerCount">0 markers</i></div>
+  <textarea id="markersView" readonly spellcheck="false"></textarea>
+  <div class="row">
+    <button id="markersDownload" disabled>Download</button>
+    <button id="markersCopy" disabled>Copy</button>
+  </div>
 </div>
 
 <div id="status"><b id="stText">loading…</b></div>
@@ -185,7 +222,6 @@ async function reattachOverlay(){
   setData();
   await addMarkerImages();
   addMarkerLayer();
-  setMarkersData();
 }
 
 /* ---------- отрисовка фигур: полигоны/линии/точки этажа ---------- */
@@ -358,20 +394,27 @@ function setData(){
   map.getSource(LABELS_SOURCE_ID)?.setData(labelPointsCollection(shifted));
 }
 
-/* ---------- маркеры (лифты/лестницы/санузлы) — только просмотр, свой файл markers.geojson ---------- */
+/* ---------- маркеры: отдельный слой поверх этажей, свой GeoJSON-файл ---------- */
 const MARKER_TYPES = [
-  { id:'elevator', file:'icons/elevator.png' },
-  { id:'stairs',   file:'icons/stairs.png' },
-  { id:'wc',       file:'icons/wc.png' }
+  { id:'elevator', title:'Elevator', file:'icons/elevator.png' },
+  { id:'stairs',   title:'Stairs',   file:'icons/stairs.png' },
+  { id:'wc',       title:'WC',       file:'icons/wc.png' }
 ];
 const MARKERS_SOURCE_ID = 'markers';
+// Маркеры — свой, отдельный от этажей набор данных: держим его целиком в памяти (все уровни сразу),
+// а на карте показываем только те, что помечены текущим активным этажом (properties.level).
 let markersCollection = { type:'FeatureCollection', features:[] };
+let nextMarkerId = 1;
+let placingMarker = false;
+let selectedMarkerId = null;
 
 function markersForActiveLevel(){
   return { type:'FeatureCollection', features: markersCollection.features.filter(f => f.properties.level === activeLevel) };
 }
 function setMarkersData(){
   map.getSource(MARKERS_SOURCE_ID)?.setData(markersForActiveLevel());
+  $('#markersView').value = JSON.stringify(markersCollection, null, 2);
+  $('#markerCount').textContent = `${markersCollection.features.length} markers`;
 }
 // map.addImage переживает только текущий стиль — после setStyle (смена подложки) иконки исчезают,
 // поэтому эта функция вызывается заново и в reattachOverlay(), а не только один раз при старте.
@@ -387,17 +430,110 @@ function addMarkerImages(){
 }
 function addMarkerLayer(){
   map.addSource(MARKERS_SOURCE_ID, { type:'geojson', data: markersForActiveLevel() });
+  // Кольцо выделения — под иконкой, поэтому добавлено первым.
+  map.addLayer({
+    id:'markers-selected', type:'circle', source:MARKERS_SOURCE_ID,
+    filter:['==', ['get','__mid'], '__none__'],
+    paint:{ 'circle-radius':20, 'circle-color':'rgba(0,0,0,0)', 'circle-stroke-color':'#ffb454', 'circle-stroke-width':3 }
+  });
   map.addLayer({
     id:'markers-icons', type:'symbol', source:MARKERS_SOURCE_ID,
     layout:{ 'icon-image':['get','type'], 'icon-size':0.9, 'icon-allow-overlap':true, 'icon-ignore-placement':true }
   });
 }
+function selectMarker(mid){
+  selectedMarkerId = mid;
+  if(map.getLayer('markers-selected')) map.setFilter('markers-selected', ['==', ['get','__mid'], mid ?? '__none__']);
+  $('#markerSelInfo').textContent = mid || 'none';
+  $('#deleteMarkerBtn').disabled = !mid;
+}
+function setPlacingMarker(on){
+  placingMarker = on;
+  $('#placeMarkerBtn').setAttribute('aria-pressed', String(on));
+  $('#placeMarkerBtn').textContent = on ? 'Placing… (click map, Esc to stop)' : 'Place marker';
+  map.getCanvas().style.cursor = on ? 'crosshair' : '';
+  if(on) selectMarker(null);
+}
+$('#placeMarkerBtn').onclick = () => setPlacingMarker(!placingMarker);
+$('#deleteMarkerBtn').onclick = () => {
+  if(!selectedMarkerId) return;
+  markersCollection.features = markersCollection.features.filter(f => f.properties.__mid !== selectedMarkerId);
+  selectMarker(null);
+  setMarkersData();
+};
+$('#markersDownload').onclick = () => {
+  const blob = new Blob([JSON.stringify(markersCollection, null, 2)], { type:'application/geo+json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'markers.geojson';
+  link.click();
+  URL.revokeObjectURL(link.href);
+};
+$('#markersCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText(JSON.stringify(markersCollection, null, 2)); }
+  catch(err){ console.warn('Буфер обмена недоступен:', err); }
+};
+// Перетаскивание маркера — только той конкретной копии, за которую взялись, отдельно на каждом
+// этаже. Копии того же лифта/лестницы на других этажах не трогаются, даже если сейчас у них
+// совпадающие координаты.
+let dragging = null;
+let dragMoved = false;
+let suppressNextClick = false;
+
+map.on('mousedown', 'markers-icons', event => {
+  if(!ready || placingMarker) return;
+  event.preventDefault();
+  const mid = event.features[0]?.properties?.__mid;
+  const feature = markersCollection.features.find(f => f.properties.__mid === mid);
+  if(!feature) return;
+  dragging = { feature, mid };
+  dragMoved = false;
+  map.dragPan.disable();
+  map.getCanvas().style.cursor = 'grabbing';
+});
+map.on('mousemove', event => {
+  if(!dragging) return;
+  dragMoved = true;
+  dragging.feature.geometry.coordinates = [event.lngLat.lng, event.lngLat.lat];
+  setMarkersData();
+});
+map.on('mouseup', () => {
+  if(!dragging) return;
+  selectMarker(dragging.mid);
+  if(dragMoved) suppressNextClick = true;   // иначе следующий click тут же снимет выделение
+  dragging = null;
+  map.dragPan.enable();
+  map.getCanvas().style.cursor = placingMarker ? 'crosshair' : '';
+});
+map.on('mouseenter', 'markers-icons', () => { if(!placingMarker && !dragging) map.getCanvas().style.cursor = 'grab'; });
+map.on('mouseleave', 'markers-icons', () => { if(!placingMarker && !dragging) map.getCanvas().style.cursor = ''; });
+
+map.on('click', event => {
+  if(!ready) return;
+  if(suppressNextClick){ suppressNextClick = false; return; }
+  if(placingMarker){
+    if(!activeLevel){ console.warn('Не выбран этаж — маркер некуда привязать.'); return; }
+    markersCollection.features.push({
+      type:'Feature',
+      properties:{ __mid:`m${nextMarkerId++}`, type:$('#markerType').value, level:activeLevel },
+      geometry:{ type:'Point', coordinates:[event.lngLat.lng, event.lngLat.lat] }
+    });
+    setMarkersData();
+    return;
+  }
+  const hit = map.queryRenderedFeatures(event.point, { layers:['markers-icons'] })[0];
+  selectMarker(hit?.properties?.__mid || null);
+});
+// Тот же CACHE_BUST/no-store, что и для этажей — markers.geojson тоже должен подхватываться свежим.
+// Файла может не быть вовсе (ещё ничего не сохраняли) — это не ошибка, просто стартуем с пустого.
 async function loadMarkers(){
   try {
     const fc = await loadFile('markers.geojson');
-    if(fc?.type === 'FeatureCollection') markersCollection = fc;
+    if(fc?.type !== 'FeatureCollection') return;
+    fc.features.forEach(f => { if(!f.properties) f.properties = {}; if(!f.properties.__mid) f.properties.__mid = `m${nextMarkerId++}`; });
+    markersCollection = fc;
   } catch(err){
-    console.warn('markers.geojson не найден — маркеры не показаны:', err.message);
+    console.warn('markers.geojson не найден — начинаем с пустого набора маркеров:', err.message);
   }
 }
 
@@ -406,6 +542,7 @@ map.on('load', async () => {
   await addMarkerImages();
   addMarkerLayer();
   await loadMarkers();
+  setMarkersData();
   preloadLevels();
 });
 
@@ -425,7 +562,7 @@ function syncButtons(){
     button.setAttribute('aria-pressed', String(level.id === activeLevel));
     button.disabled = !ready;
   }
-  for(const id of ['#bOSM','#bSAT','#bMBX']) $(id).disabled = !ready;
+  for(const id of ['#bOSM','#bSAT','#bMBX','#markerType','#placeMarkerBtn','#markersDownload','#markersCopy']) $(id).disabled = !ready;
 }
 // Переключение — только подмена данных источника. Зум и положение карты не трогаем:
 // переключая этажи, пользователь смотрит на одно и то же место здания.
@@ -436,7 +573,8 @@ function selectLevel(id){
   syncButtons();
   collection = levelData.get(id) || null;
   setData();
-  setMarkersData();
+  setMarkersData();          // маркеры другого этажа не должны маячить на новом
+  selectMarker(null);
   if(collection) setStatus(`level ${level.title} · ${collection.features.length} objects`);
   else setStatus(`level ${level.title} · failed to load: ${levelError.get(id)}`, true);
 }
@@ -491,7 +629,7 @@ async function preloadLevels(){
   if(failed.length) setStatus(`${$('#stText').textContent} · failed: ${failed.map(l => l.title).join(', ')}`, true);
 }
 
-const levelsBox = $('#levels');
+const levelsBox = $('#levelButtons');
 for(const level of LEVELS){
   const button = document.createElement('button');
   button.id = `level-${level.id}`;
@@ -501,10 +639,12 @@ for(const level of LEVELS){
   button.onclick = () => selectLevel(level.id);
   levelsBox.appendChild(button);
 }
-// Цифры и буквы на клавиатуре — быстрый переход между этажами, стрелки — сдвиг всей геометрии.
+// Цифры и буквы на клавиатуре — быстрый переход между этажами, стрелки — сдвиг всей геометрии,
+// Esc — выйти из режима расстановки маркеров.
 const ARROW_DELTA = { ArrowUp:[0,1], ArrowDown:[0,-1], ArrowLeft:[-1,0], ArrowRight:[1,0] };
 window.addEventListener('keydown', event => {
   if(/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+  if(event.key === 'Escape' && placingMarker){ setPlacingMarker(false); return; }
   const arrow = ARROW_DELTA[event.key];
   if(arrow){ event.preventDefault(); nudge(arrow[0], arrow[1], event.shiftKey); return; }
   const key = event.key.toLowerCase();
