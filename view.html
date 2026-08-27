@@ -49,6 +49,14 @@
     border:1px solid var(--line);border-radius:6px;padding:6px 9px;color:var(--dim);
     font-family:ui-monospace,Menlo,monospace;font-size:11px}
   #status b{color:var(--acc);font-weight:600}
+
+  #offset{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;
+    background:rgba(21,27,35,.9);border:1px solid var(--line);border-radius:6px;
+    padding:6px 9px;color:var(--dim);font-family:ui-monospace,Menlo,monospace;font-size:11px;
+    display:flex;align-items:center;gap:8px}
+  #offset button{background:#1d2632;border:1px solid var(--line);color:var(--ink);
+    border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer}
+  #offset button:hover{background:#26313f}
   #status.err b{color:#ff9c9c}
 </style>
 </head>
@@ -66,6 +74,11 @@
 </div>
 
 <div id="status"><b id="stText">loading…</b></div>
+<div id="offset">
+  <span id="offsetText">Δlng 0.0000000  Δlat 0.0000000  (0.00 m E, 0.00 m N)</span>
+  <button id="offsetCopy" title="Скопировать {dLng, dLat} в буфер">Copy</button>
+  <button id="offsetReset" title="Сбросить сдвиг">Reset</button>
+</div>
 
 <script>
 // Классическая сборка объявляет глобальный mapboxgl (не ES-модуль). Имя не «Map» — так называется
@@ -296,9 +309,49 @@ function fitToCollection(fc){
   }
   if(isFinite(minX)) map.fitBounds([[minX, minY], [maxX, maxY]], { padding:60, duration:0, maxZoom:21 });
 }
+/* ---------- смещение всей геометрии стрелками ---------- */
+// Только визуальный сдвиг для подбора поправки — оригинальные данные (levelData) не трогаем,
+// поэтому смещение не накапливается криво при переключении этажей и его всегда можно сбросить.
+// Долгота «сжата» относительно широты в cos(широты) раз — без поправки на это шаг вправо/влево
+// на экране казался бы длиннее шага вверх/вниз на то же число градусов.
+const METERS_PER_DEGREE_LAT = 111320;
+let offset = { dLng: 0, dLat: 0 };
+function translateCoordinates(node, dLng, dLat){
+  if(typeof node[0] === 'number') return [node[0] + dLng, node[1] + dLat];
+  return node.map(item => translateCoordinates(item, dLng, dLat));
+}
+function translateCollection(fc, dLng, dLat){
+  if(!fc || (!dLng && !dLat)) return fc;
+  return {
+    type:'FeatureCollection',
+    features:fc.features.map(f => ({ ...f, geometry:{ ...f.geometry, coordinates:translateCoordinates(f.geometry.coordinates, dLng, dLat) } }))
+  };
+}
+function updateOffsetReadout(){
+  const metersLng = offset.dLng * METERS_PER_DEGREE_LAT * Math.cos(map.getCenter().lat * Math.PI / 180);
+  const metersLat = offset.dLat * METERS_PER_DEGREE_LAT;
+  $('#offsetText').textContent =
+    `Δlng ${offset.dLng.toFixed(7)}  Δlat ${offset.dLat.toFixed(7)}  (${metersLng.toFixed(2)} m E, ${metersLat.toFixed(2)} m N)`;
+}
+function nudge(dx, dy, big){
+  const meters = 0.05 * (big ? 10 : 1);   // 5 см за нажатие, 50 см с Shift
+  const lat = map.getCenter().lat;
+  offset.dLng += dx * meters / (METERS_PER_DEGREE_LAT * Math.cos(lat * Math.PI / 180));
+  offset.dLat += dy * meters / METERS_PER_DEGREE_LAT;
+  updateOffsetReadout();
+  setData();
+}
+$('#offsetReset').onclick = () => { offset = { dLng:0, dLat:0 }; updateOffsetReadout(); setData(); };
+$('#offsetCopy').onclick = async () => {
+  const text = JSON.stringify(offset);
+  try { await navigator.clipboard.writeText(text); }
+  catch { console.warn('Буфер обмена недоступен, значение:', text); }
+};
+
 function setData(){
-  map.getSource(SOURCE_ID)?.setData(collection || EMPTY_FC);
-  map.getSource(LABELS_SOURCE_ID)?.setData(labelPointsCollection(collection));
+  const shifted = translateCollection(collection, offset.dLng, offset.dLat);
+  map.getSource(SOURCE_ID)?.setData(shifted || EMPTY_FC);
+  map.getSource(LABELS_SOURCE_ID)?.setData(labelPointsCollection(shifted));
 }
 
 map.on('load', () => { addLayers(); preloadLevels(); });
@@ -394,9 +447,12 @@ for(const level of LEVELS){
   button.onclick = () => selectLevel(level.id);
   levelsBox.appendChild(button);
 }
-// Цифры и буквы на клавиатуре — быстрый переход между этажами.
+// Цифры и буквы на клавиатуре — быстрый переход между этажами, стрелки — сдвиг всей геометрии.
+const ARROW_DELTA = { ArrowUp:[0,1], ArrowDown:[0,-1], ArrowLeft:[-1,0], ArrowRight:[1,0] };
 window.addEventListener('keydown', event => {
   if(/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+  const arrow = ARROW_DELTA[event.key];
+  if(arrow){ event.preventDefault(); nudge(arrow[0], arrow[1], event.shiftKey); return; }
   const key = event.key.toLowerCase();
   if(['1','2','3','4'].includes(key)) selectLevel(key);
   else if(key === 'a') selectLevel(activeLevel === 'a1' ? 'a2' : 'a1');
