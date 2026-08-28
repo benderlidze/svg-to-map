@@ -365,6 +365,14 @@ const MARKER_TYPES = [
   { id:'wc',       file:'icons/wc.png' }
 ];
 const MARKERS_SOURCE_ID = 'markers';
+const MARKER_MAX_SIZE_ZOOM = 18.6;
+const MARKER_MAX_ICON_SIZE = 0.9;
+const MARKER_ICON_SIZE_BY_ZOOM = [
+  'interpolate', ['exponential', 2], ['zoom'],
+  0, MARKER_MAX_ICON_SIZE / Math.pow(2, MARKER_MAX_SIZE_ZOOM),
+  MARKER_MAX_SIZE_ZOOM, MARKER_MAX_ICON_SIZE,
+  22, MARKER_MAX_ICON_SIZE
+];
 let markersCollection = { type:'FeatureCollection', features:[] };
 
 function markersForActiveLevel(){
@@ -389,7 +397,7 @@ function addMarkerLayer(){
   map.addSource(MARKERS_SOURCE_ID, { type:'geojson', data: markersForActiveLevel() });
   map.addLayer({
     id:'markers-icons', type:'symbol', source:MARKERS_SOURCE_ID,
-    layout:{ 'icon-image':['get','type'], 'icon-size':0.9, 'icon-allow-overlap':true, 'icon-ignore-placement':true }
+    layout:{ 'icon-image':['get','type'], 'icon-size':MARKER_ICON_SIZE_BY_ZOOM, 'icon-allow-overlap':true, 'icon-ignore-placement':true }
   });
 }
 async function loadMarkers(){
