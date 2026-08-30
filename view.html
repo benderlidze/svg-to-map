@@ -180,6 +180,7 @@ function setBase(b){
 // и заливаем текущие данные заново. Камеру (зум/центр) Mapbox GL сохраняет сам, трогать не надо.
 // Иконки маркеров (map.addImage) тоже стираются вместе со стилем — грузим их заново.
 async function reattachOverlay(){
+  resetHover();   // старые слои стёрты вместе со стилем — забываем подсвеченный индекс
   addLayers();
   buildLayerPool(poolSize);
   setData();
@@ -456,6 +457,7 @@ function selectLevel(id){
   if(!ready || !level || id === activeLevel) return;
   activeLevel = id;
   syncButtons();
+  setHover(null);
   collection = levelData.get(id) || null;
   setData();
   setMarkersData();
@@ -532,6 +534,60 @@ window.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
   if(['1','2','3','4'].includes(key)) selectLevel(key);
   else if(key === 'a') selectLevel(activeLevel === 'a1' ? 'a2' : 'a1');
+});
+
+/* ---------- кликабельные помещения: подсветка при наведении + переход по клику ---------- */
+// Ссылки задаются по подписи (properties.label) — так связь «комната → страница» живёт в одном
+// месте и не требует правки geojson. Ключи сравниваются без учёта регистра и лишних пробелов.
+const ROOM_LINKS = {
+  'lobby':          'https://google.com',
+  'lounge':         'https://google.com',
+  'resident patio': 'https://google.com'
+};
+const HOVER_FILL_COLOR = '#87cefa';   // светло-голубой
+const DEFAULT_FILL_EXPR = ['coalesce', ['get','fillColor'], '#8f623f'];
+
+function linkForFeature(feature){
+  const label = feature?.properties?.label;
+  if(typeof label !== 'string') return null;
+  return ROOM_LINKS[label.trim().toLowerCase()] || null;
+}
+
+// Пул слоёв адресуется по __index, поэтому подсветка — это подмена fill-color ровно у одного
+// слоя. feature-state здесь не подходит: у каждой фигуры свой слой, и общего слоя с состоянием нет.
+let hoveredIndex = null;
+// Слои пула переиспользуются между этажами и пересоздаются при смене подложки — в обоих случаях
+// подсветку надо снять, иначе синева останется на чужой фигуре с тем же __index.
+function resetHover(){ hoveredIndex = null; if(map.getCanvas()) map.getCanvas().style.cursor = ''; }
+function setHover(index){
+  if(hoveredIndex === index) return;
+  if(hoveredIndex !== null && map.getLayer(`shape-fill-${hoveredIndex}`))
+    map.setPaintProperty(`shape-fill-${hoveredIndex}`, 'fill-color', DEFAULT_FILL_EXPR);
+  hoveredIndex = index;
+  if(hoveredIndex !== null && map.getLayer(`shape-fill-${hoveredIndex}`))
+    map.setPaintProperty(`shape-fill-${hoveredIndex}`, 'fill-color', HOVER_FILL_COLOR);
+  map.getCanvas().style.cursor = hoveredIndex === null ? '' : 'pointer';
+}
+
+// Слоёв в пуле сотни, перечислять их в queryRenderedFeatures дорого — вместо этого запрашиваем
+// всё под курсором и отбираем свои слои по имени.
+function clickableAt(point){
+  for(const feature of map.queryRenderedFeatures(point)){
+    if(!/^shape-fill-\d+$/.test(feature.layer?.id || '')) continue;
+    if(linkForFeature(feature)) return feature;
+  }
+  return null;
+}
+
+map.on('mousemove', event => {
+  const feature = clickableAt(event.point);
+  setHover(feature ? feature.properties.__index : null);
+});
+map.on('mouseout', () => setHover(null));
+map.on('click', event => {
+  const feature = clickableAt(event.point);
+  const link = linkForFeature(feature);
+  if(link) window.open(link, '_blank', 'noopener');
 });
 </script>
 </body>
