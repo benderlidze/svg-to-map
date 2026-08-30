@@ -180,6 +180,7 @@ function setBase(b){
 // и заливаем текущие данные заново. Камеру (зум/центр) Mapbox GL сохраняет сам, трогать не надо.
 // Иконки маркеров (map.addImage) тоже стираются вместе со стилем — грузим их заново.
 async function reattachOverlay(){
+  resetHover();   // старые слои стёрты вместе со стилем — забываем подсвеченный индекс
   addLayers();
   buildLayerPool(poolSize);
   setData();
@@ -235,7 +236,6 @@ function addLayers(){
       // coalesce обязан идти ДО to-number: to-number(null) даёт 0, а не null.
       'text-size':zoomScaledSize(['to-number', ['coalesce', ['get','textSize'], 28]]),
       'text-rotate':['to-number', ['coalesce', ['get','textAngle'], 0]],
-      'text-offset':['coalesce', ['get','textOffset'], ['literal',[0,0]]],
       'text-rotation-alignment':'map',
       'text-allow-overlap':true,
       'text-ignore-placement':true,
@@ -285,22 +285,30 @@ function flatBounds(geometry){
   }
   return [minX, minY, maxX, maxY];
 }
+// Подпись привязана к собственной координате properties.labelPoint = [lng, lat].
+// Раньше точка считалась на лету из геометрии, а ручная правка жила в text-offset (в ems) —
+// из-за em-единиц смещение масштабировалось вместе с текстом и подпись «ездила» по зумам.
+// Теперь положение подписи — обычная географическая точка, она стоит намертво на любом зуме.
+// Фигурам без labelPoint (старые файлы) точка считается один раз как центр габаритов.
+function labelAnchor(feature){
+  const point = feature.properties?.labelPoint;
+  if(Array.isArray(point) && point.length === 2 && isFinite(point[0]) && isFinite(point[1])) return point;
+  const [minX, minY, maxX, maxY] = flatBounds(feature.geometry);
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
 function labelPointsCollection(fc){
   return {
     type:'FeatureCollection',
     features:(fc?.features || [])
       .filter(f => f.properties.label)
-      .map(f => {
-        const [minX, minY, maxX, maxY] = flatBounds(f.geometry);
-        return {
-          type:'Feature',
-          properties:{
-            label:f.properties.label, textSize:f.properties.textSize,
-            textAngle:f.properties.textAngle, textOffset:f.properties.textOffset
-          },
-          geometry:{ type:'Point', coordinates:[(minX + maxX) / 2, (minY + maxY) / 2] }
-        };
-      })
+      .map(f => ({
+        type:'Feature',
+        properties:{
+          label:f.properties.label, textSize:f.properties.textSize,
+          textAngle:f.properties.textAngle
+        },
+        geometry:{ type:'Point', coordinates:labelAnchor(f) }
+      }))
   };
 }
 function fitToCollection(fc){
@@ -328,7 +336,14 @@ function translateCollection(fc, dLng, dLat){
   if(!fc || (!dLng && !dLat)) return fc;
   return {
     type:'FeatureCollection',
-    features:fc.features.map(f => ({ ...f, geometry:{ ...f.geometry, coordinates:translateCoordinates(f.geometry.coordinates, dLng, dLat) } }))
+    // labelPoint — самостоятельная координата подписи, её надо сдвигать вместе с геометрией,
+    // иначе при подгонке плана подписи останутся на старом месте.
+    features:fc.features.map(f => {
+      const properties = Array.isArray(f.properties?.labelPoint)
+        ? { ...f.properties, labelPoint:[f.properties.labelPoint[0] + dLng, f.properties.labelPoint[1] + dLat] }
+        : f.properties;
+      return { ...f, properties, geometry:{ ...f.geometry, coordinates:translateCoordinates(f.geometry.coordinates, dLng, dLat) } };
+    })
   };
 }
 function updateOffsetReadout(){
@@ -442,6 +457,7 @@ function selectLevel(id){
   if(!ready || !level || id === activeLevel) return;
   activeLevel = id;
   syncButtons();
+  setHover(null);
   collection = levelData.get(id) || null;
   setData();
   setMarkersData();
@@ -518,6 +534,60 @@ window.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
   if(['1','2','3','4'].includes(key)) selectLevel(key);
   else if(key === 'a') selectLevel(activeLevel === 'a1' ? 'a2' : 'a1');
+});
+
+/* ---------- кликабельные помещения: подсветка при наведении + переход по клику ---------- */
+// Ссылки задаются по подписи (properties.label) — так связь «комната → страница» живёт в одном
+// месте и не требует правки geojson. Ключи сравниваются без учёта регистра и лишних пробелов.
+const ROOM_LINKS = {
+  'lobby':          'https://google.com',
+  'lounge':         'https://google.com',
+  'resident patio': 'https://google.com'
+};
+const HOVER_FILL_COLOR = '#87cefa';   // светло-голубой
+const DEFAULT_FILL_EXPR = ['coalesce', ['get','fillColor'], '#8f623f'];
+
+function linkForFeature(feature){
+  const label = feature?.properties?.label;
+  if(typeof label !== 'string') return null;
+  return ROOM_LINKS[label.trim().toLowerCase()] || null;
+}
+
+// Пул слоёв адресуется по __index, поэтому подсветка — это подмена fill-color ровно у одного
+// слоя. feature-state здесь не подходит: у каждой фигуры свой слой, и общего слоя с состоянием нет.
+let hoveredIndex = null;
+// Слои пула переиспользуются между этажами и пересоздаются при смене подложки — в обоих случаях
+// подсветку надо снять, иначе синева останется на чужой фигуре с тем же __index.
+function resetHover(){ hoveredIndex = null; if(map.getCanvas()) map.getCanvas().style.cursor = ''; }
+function setHover(index){
+  if(hoveredIndex === index) return;
+  if(hoveredIndex !== null && map.getLayer(`shape-fill-${hoveredIndex}`))
+    map.setPaintProperty(`shape-fill-${hoveredIndex}`, 'fill-color', DEFAULT_FILL_EXPR);
+  hoveredIndex = index;
+  if(hoveredIndex !== null && map.getLayer(`shape-fill-${hoveredIndex}`))
+    map.setPaintProperty(`shape-fill-${hoveredIndex}`, 'fill-color', HOVER_FILL_COLOR);
+  map.getCanvas().style.cursor = hoveredIndex === null ? '' : 'pointer';
+}
+
+// Слоёв в пуле сотни, перечислять их в queryRenderedFeatures дорого — вместо этого запрашиваем
+// всё под курсором и отбираем свои слои по имени.
+function clickableAt(point){
+  for(const feature of map.queryRenderedFeatures(point)){
+    if(!/^shape-fill-\d+$/.test(feature.layer?.id || '')) continue;
+    if(linkForFeature(feature)) return feature;
+  }
+  return null;
+}
+
+map.on('mousemove', event => {
+  const feature = clickableAt(event.point);
+  setHover(feature ? feature.properties.__index : null);
+});
+map.on('mouseout', () => setHover(null));
+map.on('click', event => {
+  const feature = clickableAt(event.point);
+  const link = linkForFeature(feature);
+  if(link) window.open(link, '_blank', 'noopener');
 });
 </script>
 </body>

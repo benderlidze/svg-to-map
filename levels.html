@@ -157,10 +157,13 @@
       <div class="lab">Text size</div>
       <input type="number" id="labelSize" min="6" max="60" step="1" value="28" disabled>
 
-      <div class="lab">Text offset from centroid <i>ems</i></div>
+      <div class="lab">Text position <i id="labelPointText">—</i></div>
+      <div class="hint">Drag the text on the map, or nudge with arrow keys (Shift — ×10).</div>
+      <div class="lab" style="margin-top:2px">Reset position to</div>
       <div class="row">
-        <input type="number" id="labelOffsetX" step="0.1" value="0" placeholder="X" disabled>
-        <input type="number" id="labelOffsetY" step="0.1" value="0" placeholder="Y" disabled>
+        <button id="labelToBbox" disabled title="Center of the bounding box">bbox</button>
+        <button id="labelToCentroid" disabled title="Center of mass of the area">centroid</button>
+        <button id="labelToPole" disabled title="Deepest inside point — always within the shape">inside</button>
       </div>
 
       <div class="lab">Level</div>
@@ -342,9 +345,6 @@ function addLayers(){
       // и тогда coalesce(to-number(null), 14) вернёт 0 (невидимый текст), а не 14.
       'text-size':zoomScaledSize(['to-number', ['coalesce', ['get','textSize'], 28]]),
       'text-rotate':['to-number', ['coalesce', ['get','textAngle'], 0]],
-      // text-offset — массив из двух чисел; выражение обязано целиком вернуть массив,
-      // отдельные вычисляемые числа внутрь него так не вставить — поэтому храним готовый [x,y].
-      'text-offset':['coalesce', ['get','textOffset'], ['literal',[0,0]]],
       'text-rotation-alignment':'map',
       'text-allow-overlap':true,
       'text-ignore-placement':true,
@@ -405,11 +405,107 @@ function ensureUids(fc){
   }
   return fc;
 }
-// Точка привязки подписи — центр габаритного прямоугольника фигуры (не центроид площади,
-// но для типичных комнат/коридоров этого достаточно, а считается одинаково для любой геометрии).
-function labelAnchor(geometry){
+// Положение подписи — собственная координата фигуры: properties.labelPoint = [lng, lat].
+// Раньше точка считалась на лету, а ручная правка жила в text-offset (в ems); em-единицы
+// масштабируются вместе с текстом, поэтому подпись «ездила» при смене зума. Теперь это
+// обычная географическая точка: она стоит на месте на любом зуме и её можно таскать мышью.
+// Пресеты ниже (bbox/centroid/pole) — лишь способ вычислить точку заново, а не режим отрисовки.
+function labelAnchor(feature){
+  const point = feature.properties?.labelPoint;
+  if(Array.isArray(point) && point.length === 2 && isFinite(point[0]) && isFinite(point[1])) return point;
+  return computeAnchor(feature.geometry, 'bbox');
+}
+function computeAnchor(geometry, mode){
+  if(mode === 'centroid'){
+    const point = areaCentroid(geometry);
+    if(point) return point;
+  }
+  if(mode === 'pole'){
+    const point = poleOfInaccessibility(geometry);
+    if(point) return point;
+  }
   const [minX, minY, maxX, maxY] = flatBounds(geometry);
   return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
+// Внешние кольца геометрии (дырки игнорируем — на планах помещений их нет).
+function outerRings(geometry){
+  if(!geometry) return [];
+  if(geometry.type === 'Polygon') return geometry.coordinates.slice(0, 1);
+  if(geometry.type === 'MultiPolygon') return geometry.coordinates.map(poly => poly[0]).filter(Boolean);
+  return [];
+}
+// Центр масс по формуле площади многоугольника; кольца мультиполигона взвешиваются по площади.
+function areaCentroid(geometry){
+  let sumArea = 0, sumX = 0, sumY = 0;
+  for(const ring of outerRings(geometry)){
+    if(!ring || ring.length < 3) continue;
+    let area = 0, cx = 0, cy = 0;
+    for(let i = 0, j = ring.length - 1; i < ring.length; j = i++){
+      const cross = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+      area += cross;
+      cx += (ring[j][0] + ring[i][0]) * cross;
+      cy += (ring[j][1] + ring[i][1]) * cross;
+    }
+    if(!area) continue;
+    sumArea += area / 2;
+    sumX += cx / 6;
+    sumY += cy / 6;
+  }
+  if(!sumArea) return null;
+  return [sumX / sumArea, sumY / sumArea];
+}
+function pointInRing(x, y, ring){
+  let inside = false;
+  for(let i = 0, j = ring.length - 1; i < ring.length; j = i++){
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+// Расстояние до контура со знаком: положительное внутри фигуры, отрицательное снаружи.
+function signedDistanceToRings(x, y, rings){
+  let best = Infinity, inside = false;
+  for(const ring of rings){
+    if(pointInRing(x, y, ring)) inside = !inside;
+    for(let i = 0, j = ring.length - 1; i < ring.length; j = i++){
+      const [x1, y1] = ring[j], [x2, y2] = ring[i];
+      const dx = x2 - x1, dy = y2 - y1;
+      const len2 = dx * dx + dy * dy;
+      const t = len2 ? Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / len2)) : 0;
+      const ex = x1 + t * dx - x, ey = y1 + t * dy - y;
+      best = Math.min(best, Math.sqrt(ex * ex + ey * ey));
+    }
+  }
+  return inside ? best : -best;
+}
+// Точка, максимально удалённая от границ (упрощённый polylabel): грубая сетка плюс уточнение
+// сжимающимся шагом. Для планов этого достаточно и не требует внешних библиотек.
+function poleOfInaccessibility(geometry){
+  const rings = outerRings(geometry).filter(r => r && r.length > 2);
+  if(!rings.length) return null;
+  const [minX, minY, maxX, maxY] = flatBounds(geometry);
+  const width = maxX - minX, height = maxY - minY;
+  if(!width || !height) return null;
+  const steps = 24;
+  let best = null, bestDistance = -Infinity;
+  for(let i = 0; i <= steps; i++){
+    for(let j = 0; j <= steps; j++){
+      const x = minX + width * i / steps, y = minY + height * j / steps;
+      const d = signedDistanceToRings(x, y, rings);
+      if(d > bestDistance){ bestDistance = d; best = [x, y]; }
+    }
+  }
+  if(!best) return null;
+  let stepX = width / steps, stepY = height / steps;
+  for(let iteration = 0; iteration < 12; iteration++){
+    stepX /= 2; stepY /= 2;
+    for(const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){
+      const x = best[0] + dx * stepX, y = best[1] + dy * stepY;
+      const d = signedDistanceToRings(x, y, rings);
+      if(d > bestDistance){ bestDistance = d; best = [x, y]; }
+    }
+  }
+  return best;
 }
 function labelPointsCollection(fc){
   return {
@@ -420,9 +516,9 @@ function labelPointsCollection(fc){
         type:'Feature',
         properties:{
           __uid:f.properties.__uid, label:f.properties.label,
-          textSize:f.properties.textSize, textAngle:f.properties.textAngle, textOffset:f.properties.textOffset
+          textSize:f.properties.textSize, textAngle:f.properties.textAngle
         },
-        geometry:{ type:'Point', coordinates:labelAnchor(f.geometry) }
+        geometry:{ type:'Point', coordinates:labelAnchor(f) }
       }))
   };
 }
@@ -500,7 +596,7 @@ function selectFeature(uid){
 }
 function syncPanel(){
   const feature = selectedUid ? findFeature(selectedUid) : null;
-  const fields = ['#fillColor','#fillColorText','#outlineColor','#outlineColorText','#outlineEnabled','#labelText','#labelAngle','#labelSize','#labelOffsetX','#labelOffsetY','#levelName','#cloneCount','#cloneDirection','#cloneBtn','#cloneRenumber','#deselect'];
+  const fields = ['#fillColor','#fillColorText','#outlineColor','#outlineColorText','#outlineEnabled','#labelText','#labelAngle','#labelSize','#labelToBbox','#labelToCentroid','#labelToPole','#levelName','#cloneCount','#cloneDirection','#cloneBtn','#cloneRenumber','#deselect'];
   for(const sel of fields) $(sel).disabled = !feature;
   if(!feature){
     $('#selCount').textContent = 'none selected';
@@ -517,9 +613,7 @@ function syncPanel(){
   $('#labelAngle').value = String(p.textAngle ?? 0);
   $('#vAngle').textContent = `${Math.round(p.textAngle ?? 0)}°`;
   $('#labelSize').value = String(p.textSize ?? 28);
-  const offset = Array.isArray(p.textOffset) ? p.textOffset : [0, 0];
-  $('#labelOffsetX').value = String(offset[0] ?? 0);
-  $('#labelOffsetY').value = String(offset[1] ?? 0);
+  updateLabelPointReadout(feature);
   $('#levelName').value = p.level || '';
 }
 function updateSelected(patch){
@@ -549,7 +643,18 @@ function bindColorField(colorId, textId, prop){
 bindColorField('#fillColor', '#fillColorText', 'fillColor');
 bindColorField('#outlineColor', '#outlineColorText', 'outlineColor');
 $('#outlineEnabled').onchange = e => updateSelected({ outlineEnabled:e.target.checked });
-$('#labelText').oninput = e => updateSelected({ label:e.target.value });
+$('#labelText').oninput = e => {
+  const feature = selectedUid ? findFeature(selectedUid) : null;
+  // Новой подписи сразу выдаём собственную координату, чтобы её было за что таскать
+  // и чтобы положение не «плавало» при последующей правке геометрии.
+  const patch = { label:e.target.value };
+  if(feature && e.target.value && !Array.isArray(feature.properties.labelPoint)){
+    const [lng, lat] = computeAnchor(feature.geometry, 'bbox');
+    patch.labelPoint = [round9(lng), round9(lat)];
+  }
+  updateSelected(patch);
+  updateLabelPointReadout(feature);
+};
 $('#labelAngle').oninput = e => {
   const angle = +e.target.value || 0;
   $('#vAngle').textContent = `${angle}°`;
@@ -560,9 +665,72 @@ $('#labelSize').onchange = e => {
   e.target.value = String(size);
   updateSelected({ textSize:size });
 };
-const updateOffset = () => updateSelected({ textOffset:[+$('#labelOffsetX').value || 0, +$('#labelOffsetY').value || 0] });
-$('#labelOffsetX').oninput = updateOffset;
-$('#labelOffsetY').oninput = updateOffset;
+/* ---------- положение подписи: своя координата, её можно таскать ---------- */
+const round9 = n => Math.round(n * 1e9) / 1e9;
+function updateLabelPointReadout(feature){
+  const readout = $('#labelPointText');
+  if(!feature){ readout.textContent = '—'; return; }
+  const [lng, lat] = labelAnchor(feature);
+  readout.textContent = `${lng.toFixed(6)}, ${lat.toFixed(6)}`;
+}
+function setLabelPoint(lng, lat){
+  updateSelected({ labelPoint:[round9(lng), round9(lat)] });
+  const feature = selectedUid ? findFeature(selectedUid) : null;
+  updateLabelPointReadout(feature);
+}
+function resetLabelPoint(mode){
+  const feature = selectedUid ? findFeature(selectedUid) : null;
+  if(!feature) return;
+  const [lng, lat] = computeAnchor(feature.geometry, mode);
+  setLabelPoint(lng, lat);
+}
+$('#labelToBbox').onclick = () => resetLabelPoint('bbox');
+$('#labelToCentroid').onclick = () => resetLabelPoint('centroid');
+$('#labelToPole').onclick = () => resetLabelPoint('pole');
+
+// Перетаскивание подписи мышью. Тащим только выбранную фигуру, иначе клик по чужой подписи
+// молча сдвигал бы её; на время перетаскивания глушим панорамирование карты.
+let draggingLabel = false;
+map.on('mousedown', 'shapes-label', event => {
+  const uid = event.features?.[0]?.properties?.__uid;
+  if(!uid || uid !== selectedUid) return;
+  event.preventDefault();               // не даём карте начать панорамирование
+  draggingLabel = true;
+  map.getCanvas().style.cursor = 'grabbing';
+});
+map.on('mousemove', event => {
+  if(!draggingLabel) return;
+  setLabelPoint(event.lngLat.lng, event.lngLat.lat);
+});
+map.on('mouseup', () => {
+  if(!draggingLabel) return;
+  draggingLabel = false;
+  map.getCanvas().style.cursor = '';
+});
+// Курсор-подсказка над подписью выбранной фигуры.
+map.on('mouseenter', 'shapes-label', event => {
+  if(event.features?.[0]?.properties?.__uid === selectedUid) map.getCanvas().style.cursor = 'grab';
+});
+map.on('mouseleave', 'shapes-label', () => {
+  if(!draggingLabel) map.getCanvas().style.cursor = '';
+});
+
+// Стрелками — точный сдвиг: шаг в метрах, переведённый в градусы на текущей широте,
+// чтобы по горизонтали и вертикали подпись двигалась одинаково.
+const METERS_PER_DEGREE_LAT = 111320;
+window.addEventListener('keydown', event => {
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+  const step = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,1], ArrowDown:[0,-1] }[event.key];
+  if(!step) return;
+  const feature = selectedUid ? findFeature(selectedUid) : null;
+  if(!feature || !feature.properties.label) return;
+  event.preventDefault();
+  const meters = 0.1 * (event.shiftKey ? 10 : 1);   // 10 см за нажатие, 1 м с Shift
+  const [lng, lat] = labelAnchor(feature);
+  const dLat = step[1] * meters / METERS_PER_DEGREE_LAT;
+  const dLng = step[0] * meters / (METERS_PER_DEGREE_LAT * Math.cos(lat * Math.PI / 180));
+  setLabelPoint(lng + dLng, lat + dLat);
+});
 $('#levelName').onchange = e => updateSelected({ level:e.target.value || undefined });
 $('#levelAll').onchange = e => {
   const level = e.target.value || undefined;
@@ -638,6 +806,14 @@ $('#cloneBtn').onclick = () => {
     delete properties.__gm_id;                       // id исходника не тащим в копии
     properties.__uid = `f${nextUid++}`;
     if(renumber && properties.label) properties.label = nextLabel(feature.properties.label, i);
+    // Подпись копии едет вместе с копией: labelPoint — самостоятельная координата,
+    // translateCoordinates её не трогает, поэтому сдвигаем вручную тем же шагом.
+    if(Array.isArray(properties.labelPoint)){
+      properties.labelPoint = [
+        round9(properties.labelPoint[0] + dLng * i),
+        round9(properties.labelPoint[1] + dLat * i)
+      ];
+    }
     clones.push({
       type:'Feature', properties,
       geometry:{ ...feature.geometry, coordinates:translateCoordinates(feature.geometry.coordinates, dLng * i, dLat * i) }
