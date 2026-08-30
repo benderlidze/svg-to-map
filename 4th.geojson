@@ -600,8 +600,8 @@
         "outlineColor": "#000000",
         "textSize": 16,
         "labelPoint": [
-          -113.99600094,
-          46.86630399
+          -113.99598661,
+          46.866359854
         ]
       },
       "geometry": {
@@ -678,8 +678,8 @@
         "outlineColor": "#000000",
         "textSize": 16,
         "labelPoint": [
-          -113.996013918,
-          46.866137638
+          -113.996040507,
+          46.866132714
         ]
       },
       "geometry": {
@@ -818,8 +818,8 @@
         "outlineColor": "#000000",
         "textSize": 16,
         "labelPoint": [
-          -113.995796627,
-          46.866139324
+          -113.995814656,
+          46.866142677
         ]
       },
       "geometry": {
@@ -896,8 +896,8 @@
         "outlineColor": "#000000",
         "textSize": 16,
         "labelPoint": [
-          -113.995832155,
-          46.86628383
+          -113.995837969,
+          46.866293107
         ]
       },
       "geometry": {
@@ -974,8 +974,8 @@
         "fillColor": "#8f623f",
         "outlineColor": "#000000",
         "labelPoint": [
-          -113.995920892,
-          46.866564116
+          -113.995912282,
+          46.866547144
         ]
       },
       "geometry": {
@@ -1068,8 +1068,8 @@
         "outlineColor": "#000000",
         "textSize": 16,
         "labelPoint": [
-          -113.995835424,
-          46.866425624
+          -113.995842341,
+          46.866431583
         ]
       },
       "geometry": {
@@ -1189,7 +1189,7 @@
         "__gm_shape": "polygon",
         "fillColor": "#cccccc",
         "outlineColor": "#000000",
-        "label": "Lifts",
+        "label": "",
         "textAngle": 89,
         "textSize": 14,
         "labelPoint": [
@@ -1323,7 +1323,16 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-2236",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "level": "4",
+        "label": "Future Development",
+        "labelPoint": [
+          -113.995487593,
+          46.866146083
+        ],
+        "textSize": 16,
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",

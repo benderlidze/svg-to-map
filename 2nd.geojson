@@ -1503,7 +1503,7 @@
       "properties": {
         "fillColor": "#cccccc",
         "outlineColor": "#000000",
-        "label": "Lifts",
+        "label": "",
         "textAngle": 89,
         "textSize": 14,
         "__gm_id": "feature-40",
@@ -1640,7 +1640,16 @@
       "id": "feature-2236",
       "properties": {
         "__gm_id": "feature-2236",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "level": "2",
+        "label": "Future Development",
+        "labelPoint": [
+          -113.995487593,
+          46.866146083
+        ],
+        "textSize": 16,
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000"
       },
       "geometry": {
         "type": "MultiPolygon",

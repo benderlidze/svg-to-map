@@ -148,8 +148,8 @@
         "__gm_id": "feature-593",
         "__gm_shape": "polygon",
         "labelPoint": [
-          -113.996565239,
-          46.866740616
+          -113.996602948,
+          46.866681193
         ]
       },
       "geometry": {
@@ -266,8 +266,8 @@
         "__gm_id": "feature-785",
         "__gm_shape": "polygon",
         "labelPoint": [
-          -113.996288789,
-          46.86647482
+          -113.996284227,
+          46.866472088
         ]
       },
       "geometry": {
@@ -329,8 +329,8 @@
         "__gm_id": "feature-789",
         "__gm_shape": "polygon",
         "labelPoint": [
-          -113.996120955,
-          46.866423417
+          -113.996135987,
+          46.866433982
         ]
       },
       "geometry": {
@@ -2046,7 +2046,8 @@
         "labelPoint": [
           -113.996353178,
           46.866553642
-        ]
+        ],
+        "level": "1"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -2088,7 +2089,8 @@
         "textAngle": 89,
         "textSize": 14,
         "__gm_id": "feature-40",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "level": "1"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -2134,7 +2136,8 @@
         "labelPoint": [
           -113.996002167,
           46.866470085
-        ]
+        ],
+        "level": "1"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -2174,13 +2177,14 @@
         "outlineColor": "#000000",
         "label": "Stairs",
         "textAngle": 89,
-        "textSize": 14,
+        "textSize": 12,
         "__gm_id": "feature-1711",
         "__gm_shape": "polygon",
         "labelPoint": [
           -113.995906111,
           46.866133527
-        ]
+        ],
+        "level": "1"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -2225,7 +2229,8 @@
         "labelPoint": [
           -113.995846987,
           46.866461583
-        ]
+        ],
+        "level": "1"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -2270,9 +2275,10 @@
         "__gm_id": "feature-2228",
         "__gm_shape": "polygon",
         "labelPoint": [
-          -113.99596864,
-          46.86643125
-        ]
+          -113.995958841,
+          46.866445283
+        ],
+        "level": "1"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -2320,10 +2326,17 @@
       "type": "Feature",
       "id": "feature-2236",
       "properties": {
-        "fillColor": "#8f623f",
+        "fillColor": "#cccccc",
         "outlineColor": "#000000",
         "__gm_id": "feature-2236",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "level": "1",
+        "label": "Future Development",
+        "labelPoint": [
+          -113.995487593,
+          46.866146083
+        ],
+        "textSize": 16
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -2363,7 +2376,17 @@
       "type": "Feature",
       "properties": {
         "__gm_id": "feature-269",
-        "__gm_shape": "polygon"
+        "__gm_shape": "polygon",
+        "fillColor": "#cccccc",
+        "outlineColor": "#000000",
+        "label": "Patio",
+        "labelPoint": [
+          -113.996574941,
+          46.866547598
+        ],
+        "textAngle": 22,
+        "textSize": 10,
+        "level": "1"
       },
       "geometry": {
         "type": "MultiPolygon",
