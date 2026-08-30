@@ -235,7 +235,6 @@ function addLayers(){
       // coalesce обязан идти ДО to-number: to-number(null) даёт 0, а не null.
       'text-size':zoomScaledSize(['to-number', ['coalesce', ['get','textSize'], 28]]),
       'text-rotate':['to-number', ['coalesce', ['get','textAngle'], 0]],
-      'text-offset':['coalesce', ['get','textOffset'], ['literal',[0,0]]],
       'text-rotation-alignment':'map',
       'text-allow-overlap':true,
       'text-ignore-placement':true,
@@ -285,22 +284,30 @@ function flatBounds(geometry){
   }
   return [minX, minY, maxX, maxY];
 }
+// Подпись привязана к собственной координате properties.labelPoint = [lng, lat].
+// Раньше точка считалась на лету из геометрии, а ручная правка жила в text-offset (в ems) —
+// из-за em-единиц смещение масштабировалось вместе с текстом и подпись «ездила» по зумам.
+// Теперь положение подписи — обычная географическая точка, она стоит намертво на любом зуме.
+// Фигурам без labelPoint (старые файлы) точка считается один раз как центр габаритов.
+function labelAnchor(feature){
+  const point = feature.properties?.labelPoint;
+  if(Array.isArray(point) && point.length === 2 && isFinite(point[0]) && isFinite(point[1])) return point;
+  const [minX, minY, maxX, maxY] = flatBounds(feature.geometry);
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
 function labelPointsCollection(fc){
   return {
     type:'FeatureCollection',
     features:(fc?.features || [])
       .filter(f => f.properties.label)
-      .map(f => {
-        const [minX, minY, maxX, maxY] = flatBounds(f.geometry);
-        return {
-          type:'Feature',
-          properties:{
-            label:f.properties.label, textSize:f.properties.textSize,
-            textAngle:f.properties.textAngle, textOffset:f.properties.textOffset
-          },
-          geometry:{ type:'Point', coordinates:[(minX + maxX) / 2, (minY + maxY) / 2] }
-        };
-      })
+      .map(f => ({
+        type:'Feature',
+        properties:{
+          label:f.properties.label, textSize:f.properties.textSize,
+          textAngle:f.properties.textAngle
+        },
+        geometry:{ type:'Point', coordinates:labelAnchor(f) }
+      }))
   };
 }
 function fitToCollection(fc){
@@ -328,7 +335,14 @@ function translateCollection(fc, dLng, dLat){
   if(!fc || (!dLng && !dLat)) return fc;
   return {
     type:'FeatureCollection',
-    features:fc.features.map(f => ({ ...f, geometry:{ ...f.geometry, coordinates:translateCoordinates(f.geometry.coordinates, dLng, dLat) } }))
+    // labelPoint — самостоятельная координата подписи, её надо сдвигать вместе с геометрией,
+    // иначе при подгонке плана подписи останутся на старом месте.
+    features:fc.features.map(f => {
+      const properties = Array.isArray(f.properties?.labelPoint)
+        ? { ...f.properties, labelPoint:[f.properties.labelPoint[0] + dLng, f.properties.labelPoint[1] + dLat] }
+        : f.properties;
+      return { ...f, properties, geometry:{ ...f.geometry, coordinates:translateCoordinates(f.geometry.coordinates, dLng, dLat) } };
+    })
   };
 }
 function updateOffsetReadout(){

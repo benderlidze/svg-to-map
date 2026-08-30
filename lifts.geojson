@@ -11,7 +11,11 @@
         "outlineColor": "#000000",
         "label": "Stairs",
         "textAngle": 292,
-        "textSize": 14
+        "textSize": 14,
+        "labelPoint": [
+          -113.996371573,
+          46.86659182
+        ]
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -53,7 +57,11 @@
         "outlineColor": "#000000",
         "label": "Lifts",
         "textAngle": 89,
-        "textSize": 14
+        "textSize": 14,
+        "labelPoint": [
+          -113.995742837,
+          46.866201785
+        ]
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -95,7 +103,11 @@
         "outlineColor": "#000000",
         "label": "Lifts",
         "textAngle": 290,
-        "textSize": 14
+        "textSize": 14,
+        "labelPoint": [
+          -113.996020562,
+          46.866508263
+        ]
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -136,7 +148,11 @@
         "outlineColor": "#000000",
         "label": "Stairs",
         "textAngle": 89,
-        "textSize": 14
+        "textSize": 14,
+        "labelPoint": [
+          -113.995924505,
+          46.866171705
+        ]
       },
       "geometry": {
         "type": "MultiPolygon",
