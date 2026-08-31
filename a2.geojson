@@ -63,14 +63,14 @@
         "outlineColor": "#000000",
         "label": "Future Development",
         "textAngle": 20,
-        "textSize": 20,
+        "textSize": 10,
         "level": "a2",
-        "__gm_id": "feature-49",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.996666638,
           46.866726501
-        ]
+        ],
+        "__gm_id": "feature-49",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "Polygon",
@@ -106,363 +106,6 @@
     },
     {
       "type": "Feature",
-      "id": "feature-53",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "__gm_id": "feature-53",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.99700127921047,
-                46.866760988933585
-              ],
-              [
-                -113.99702456874697,
-                46.86671868492608
-              ],
-              [
-                -113.99696070890474,
-                46.8667022512575
-              ],
-              [
-                -113.99695195404783,
-                46.86671815392368
-              ],
-              [
-                -113.99699271126795,
-                46.86672864236892
-              ],
-              [
-                -113.99697817658823,
-                46.866755043718115
-              ],
-              [
-                -113.99700127921047,
-                46.866760988933585
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "feature-57",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "__gm_id": "feature-57",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.99697817658823,
-                46.866755043718115
-              ],
-              [
-                -113.99699271126795,
-                46.86672864236892
-              ],
-              [
-                -113.9969202392301,
-                46.86670999244445
-              ],
-              [
-                -113.99690570454982,
-                46.86673639380326
-              ],
-              [
-                -113.99697817658823,
-                46.866755043718115
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "feature-69",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "__gm_id": "feature-69",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.99695195404783,
-                46.86671815392368
-              ],
-              [
-                -113.99696070890474,
-                46.8667022512575
-              ],
-              [
-                -113.99697336639463,
-                46.866679259687295
-              ],
-              [
-                -113.99694163291035,
-                46.86667109339849
-              ],
-              [
-                -113.99692022056364,
-                46.866709987640746
-              ],
-              [
-                -113.99695195404783,
-                46.86671815392368
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "feature-73",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "__gm_id": "feature-73",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.99699148722853,
-                46.86671017174087
-              ],
-              [
-                -113.99702456874697,
-                46.86671868492608
-              ],
-              [
-                -113.997049903476,
-                46.86667266591608
-              ],
-              [
-                -113.9970242872254,
-                46.866666073834786
-              ],
-              [
-                -113.99701187564901,
-                46.86668861872517
-              ],
-              [
-                -113.99700422096406,
-                46.866686648870996
-              ],
-              [
-                -113.99699148722853,
-                46.86671017174087
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "feature-77",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "label": "",
-        "textAngle": 335,
-        "textSize": 10,
-        "__gm_id": "feature-77",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.99700422096406,
-                46.866686648870996
-              ],
-              [
-                -113.99697336639463,
-                46.866679259687295
-              ],
-              [
-                -113.99696070890474,
-                46.8667022512575
-              ],
-              [
-                -113.99699148722853,
-                46.86671017174087
-              ],
-              [
-                -113.99700422096406,
-                46.866686648870996
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "feature-81",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "label": "",
-        "textAngle": 20,
-        "textSize": 10,
-        "__gm_id": "feature-81",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.99701187564901,
-                46.86668861872517
-              ],
-              [
-                -113.9970242872254,
-                46.866666073834786
-              ],
-              [
-                -113.99695436077266,
-                46.866648078970236
-              ],
-              [
-                -113.99694168353504,
-                46.86667110642649
-              ],
-              [
-                -113.99701187564901,
-                46.86668861872517
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "feature-85",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "label": "",
-        "textSize": 10,
-        "textAngle": 292,
-        "__gm_id": "feature-85",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.9970851801078,
-                46.866503880177426
-              ],
-              [
-                -113.99711123578733,
-                46.86645637545559
-              ],
-              [
-                -113.997079576919,
-                46.86644825851173
-              ],
-              [
-                -113.99705368270584,
-                46.866495468854346
-              ],
-              [
-                -113.9970851801078,
-                46.866503880177426
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "feature-89",
-      "properties": {
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000",
-        "level": "a2",
-        "__gm_id": "feature-89",
-        "__gm_shape": "polygon"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.997079576919,
-                46.86644825851173
-              ],
-              [
-                -113.99707442697033,
-                46.866446620016355
-              ],
-              [
-                -113.99704237434916,
-                46.866446620016355
-              ],
-              [
-                -113.99704382188666,
-                46.86647447249738
-              ],
-              [
-                -113.9970339214088,
-                46.8664904023047
-              ],
-              [
-                -113.99705368270584,
-                46.866495468854346
-              ],
-              [
-                -113.997079576919,
-                46.86644825851173
-              ]
-            ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
       "id": "feature-115",
       "properties": {
         "fillColor": "#cccccc",
@@ -471,12 +114,12 @@
         "label": "Patio",
         "textSize": 10,
         "textAngle": 21,
-        "__gm_id": "feature-115",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.996272465,
           46.86668837
-        ]
+        ],
+        "__gm_id": "feature-115",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -518,12 +161,12 @@
         "label": "Patio",
         "textSize": 10,
         "textAngle": 22,
-        "__gm_id": "feature-119",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.996183906,
           46.866665617
-        ]
+        ],
+        "__gm_id": "feature-119",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -565,12 +208,12 @@
         "label": "Patio",
         "textSize": 10,
         "textAngle": 22,
-        "__gm_id": "feature-123",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.99608681,
           46.866640688
-        ]
+        ],
+        "__gm_id": "feature-123",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -612,12 +255,12 @@
         "label": "Patio",
         "textSize": 10,
         "textAngle": 22,
-        "__gm_id": "feature-127",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.995980705,
           46.866612726
-        ]
+        ],
+        "__gm_id": "feature-127",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -659,12 +302,12 @@
         "label": "Patio",
         "textSize": 10,
         "textAngle": 22,
-        "__gm_id": "feature-133",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.995874556,
           46.866585544
-        ]
+        ],
+        "__gm_id": "feature-133",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -706,12 +349,12 @@
         "label": "Patio",
         "textSize": 10,
         "textAngle": 22,
-        "__gm_id": "feature-137",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.995765519,
           46.866557442
-        ]
+        ],
+        "__gm_id": "feature-137",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -752,12 +395,12 @@
         "level": "a2",
         "label": "A07",
         "textSize": 16,
-        "__gm_id": "feature-141",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.996302495,
           46.866643636
-        ]
+        ],
+        "__gm_id": "feature-141",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "Polygon",
@@ -796,12 +439,12 @@
         "level": "a2",
         "label": "A08",
         "textSize": 16,
-        "__gm_id": "feature-147",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.996204995,
           46.866618468
-        ]
+        ],
+        "__gm_id": "feature-147",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -842,12 +485,12 @@
         "level": "a2",
         "label": "A09",
         "textSize": 16,
-        "__gm_id": "feature-151",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.996108797,
           46.866593305
-        ]
+        ],
+        "__gm_id": "feature-151",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -888,12 +531,12 @@
         "level": "a2",
         "label": "A10",
         "textSize": 16,
-        "__gm_id": "feature-155",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.996006701,
           46.866567008
-        ]
+        ],
+        "__gm_id": "feature-155",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -934,12 +577,12 @@
         "level": "a2",
         "label": "A11",
         "textSize": 16,
-        "__gm_id": "feature-159",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.995897904,
           46.866539098
-        ]
+        ],
+        "__gm_id": "feature-159",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -980,12 +623,12 @@
         "level": "a2",
         "label": "A12",
         "textSize": 16,
-        "__gm_id": "feature-163",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.995787158,
           46.86651025
-        ]
+        ],
+        "__gm_id": "feature-163",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -1165,12 +808,12 @@
         "label": "Lifts",
         "textAngle": 294,
         "textSize": 10,
-        "__gm_id": "feature-15",
-        "__gm_shape": "polygon",
         "labelPoint": [
           -113.995990704,
           46.866470567
-        ]
+        ],
+        "__gm_id": "feature-15",
+        "__gm_shape": "polygon"
       },
       "geometry": {
         "type": "Polygon",
@@ -1335,49 +978,6 @@
           ]
         ]
       }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "__gm_id": "feature-61",
-        "__gm_shape": "polygon",
-        "fillColor": "#cccccc",
-        "outlineColor": "#000000"
-      },
-      "geometry": {
-        "type": "MultiPolygon",
-        "coordinates": [
-          [
-            [
-              [
-                -113.99712677095657,
-                46.866280203065095
-              ],
-              [
-                -113.997123888804,
-                46.86611111484246
-              ],
-              [
-                -113.996565228879,
-                46.86611556615103
-              ],
-              [
-                -113.99656571819897,
-                46.86614478103824
-              ],
-              [
-                -113.99708713950719,
-                46.86628051884072
-              ],
-              [
-                -113.99712677095657,
-                46.866280203065095
-              ]
-            ]
-          ]
-        ]
-      },
-      "id": "feature-61"
     }
   ]
 }
