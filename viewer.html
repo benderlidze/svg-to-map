@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/mapbox-gl@3.29.0/dist/mapbox-gl.css">
+  <script src="https://unpkg.com/mapbox-gl@3.29.0/dist/mapbox-gl.js"></script>
+  <title>Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      font: 13px/1.4 system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3
+    }
+
+    #map {
+      position: absolute;
+      inset: 0
+    }
+
+    .panel {
+      position: absolute;
+      z-index: 5;
+      background: rgba(21, 27, 35, .94);
+      border: 1px solid #2a333f;
+      border-radius: 8px;
+      display: flex;
+      overflow: hidden
+    }
+
+    /* One row so the panels flow after each other instead of overlapping. */
+    #topbar {
+      position: absolute;
+      z-index: 5;
+      top: 12px;
+      left: 52px;
+      right: 96px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      pointer-events: none
+    }
+
+    #topbar .panel {
+      position: static;
+      pointer-events: auto
+    }
+
+    #fonts {
+      padding: 0
+    }
+
+    #font-select {
+      background: transparent;
+      border: 0;
+      color: #e6edf3;
+      font: 13px/1.4 system-ui, sans-serif;
+      padding: 8px 10px;
+      cursor: pointer;
+      outline: none
+    }
+
+    #font-select option,
+    #font-select optgroup {
+      background: #151b23;
+      color: #e6edf3
+    }
+
+    #font-select:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    #levels {
+      top: 12px;
+      right: 12px;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px;
+      border-radius: 10px
+    }
+
+    button {
+      background: #1d2632;
+      border: 1px solid #2a333f;
+      color: #e6edf3;
+      cursor: pointer;
+      padding: 8px 13px;
+      font-size: 13px;
+      font-weight: 600
+    }
+
+    #base button {
+      border: 0;
+      background: transparent;
+      font-weight: 400
+    }
+
+    #levels button {
+      border-radius: 6px;
+      min-width: 60px
+    }
+
+    button:hover {
+      background: #26313f
+    }
+
+    button[aria-pressed=true] {
+      background: #ffb454;
+      color: #1a1205
+    }
+
+    #base button[aria-pressed=true] {
+      background: #4aa3ff;
+      color: #04101f
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+  <div id="topbar">
+    <div id="base" class="panel">
+      <button data-base="osm">Map</button>
+      <button data-base="sat" aria-pressed="true">Satellite</button>
+      <button data-base="mbx">Mapbox</button>
+    </div>
+    <div id="fonts" class="panel">
+      <select id="font-select"></select>
+    </div>
+  </div>
+  <div id="levels" class="panel"></div>
+
+  <script>
+    const { Map: MapboxMap, NavigationControl } = mapboxgl;
+    mapboxgl.accessToken = 'pk.eyJ1IjoiY2Jnb2luZGVlcCIsImEiOiJjbXQ3bW92d3QwN2JkMnhweGNlYmUwaTJrIn0.hkq_CzwB7t5jcg9LTandbw';
+
+    const MAPBOX_STYLE_URL = 'mapbox://styles/cbgoindeep/cmt7sxv0l001c01ssf9rk7lpk';
+    const LEVELS = [
+      { id: '4', title: '4', files: ['4th.geojson'] },
+      { id: '3', title: '3', files: ['3rd.geojson'] },
+      { id: '2', title: '2', files: ['2nd.geojson'] },
+      { id: '1', title: '1', files: ['1st.geojson'] },
+      { id: 'a1', title: 'A1', files: ['a1.geojson', 'parking-a1.geojson'] },
+      { id: 'a2', title: 'A2', files: ['a2.geojson', 'parking-a2.geojson'] }
+    ];
+    const DEFAULT_LEVEL = '1';
+
+    // Clickable rooms, matched by properties.label (case-insensitive).
+    const ROOM_LINKS = {
+      'lobby': 'https://google.com',
+      'lounge': 'https://google.com',
+      'resident patio': 'https://google.com',
+      'fitness': 'https://google.com'
+    };
+
+    const RASTER_STYLE = {
+      version: 8,
+      glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+      sources: {
+        osm: { type: 'raster', tileSize: 256, tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], attribution: '&copy; OpenStreetMap' },
+        sat: { type: 'raster', tileSize: 256, maxzoom: 19, tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], attribution: 'Esri' }
+      },
+      layers: [
+        { id: 'osm', type: 'raster', source: 'osm', layout: { visibility: 'none' } },
+        { id: 'sat', type: 'raster', source: 'sat' }
+      ]
+    };
+
+    const SOURCE_ID = 'shapes', LABELS_SOURCE_ID = 'labels', MARKERS_SOURCE_ID = 'markers';
+    const EMPTY_FC = { type: 'FeatureCollection', features: [] };
+    const FILL_EXPR = ['coalesce', ['get', 'fillColor'], '#8f623f'];
+    const HOVER_COLOR = '#87cefa';
+    const OUTLINE_EXPR = ['case',
+      ['==', ['coalesce', ['get', 'outlineEnabled'], true], false], 'rgba(0,0,0,0)',
+      ['coalesce', ['get', 'outlineColor'], '#000000']];
+    // Mapbox glyph library; 'Arial Unicode MS Regular' is the fallback for missing codepoints.
+    // Names must match Mapbox Studio exactly, weight included — a typo renders no text at all.
+    const FONTS = [
+      { group: 'Sans', id: 'open-sans', title: 'Open Sans', stack: ['Open Sans Regular'] },
+      { group: 'Sans', id: 'open-sans-bold', title: 'Open Sans Bold', stack: ['Open Sans Bold'] },
+      { group: 'Sans', id: 'roboto', title: 'Roboto', stack: ['Roboto Regular'] },
+      { group: 'Sans', id: 'roboto-medium', title: 'Roboto Medium', stack: ['Roboto Medium'] },
+      { group: 'Sans', id: 'roboto-bold', title: 'Roboto Bold', stack: ['Roboto Bold'] },
+      { group: 'Sans', id: 'roboto-condensed', title: 'Roboto Condensed', stack: ['Roboto Condensed Regular'] },
+      { group: 'Sans', id: 'source-sans', title: 'Source Sans Pro', stack: ['Source Sans Pro Regular'] },
+      { group: 'Sans', id: 'source-sans-bold', title: 'Source Sans Pro Bold', stack: ['Source Sans Pro Bold'] },
+      { group: 'Sans', id: 'noto-sans', title: 'Noto Sans', stack: ['Noto Sans Regular'] },
+      { group: 'Sans', id: 'noto-sans-bold', title: 'Noto Sans Bold', stack: ['Noto Sans Bold'] },
+      { group: 'Sans', id: 'lato', title: 'Lato', stack: ['Lato Regular'] },
+      { group: 'Sans', id: 'lato-bold', title: 'Lato Bold', stack: ['Lato Bold'] },
+      { group: 'Sans', id: 'montserrat', title: 'Montserrat', stack: ['Montserrat Regular'] },
+      { group: 'Sans', id: 'montserrat-bold', title: 'Montserrat Bold', stack: ['Montserrat Bold'] },
+      { group: 'Sans', id: 'poppins', title: 'Poppins', stack: ['Poppins Regular'] },
+      { group: 'Sans', id: 'poppins-medium', title: 'Poppins Medium', stack: ['Poppins Medium'] },
+      { group: 'Sans', id: 'raleway', title: 'Raleway', stack: ['Raleway Regular'] },
+      { group: 'Sans', id: 'work-sans', title: 'Work Sans', stack: ['Work Sans Regular'] },
+      { group: 'Sans', id: 'rubik', title: 'Rubik', stack: ['Rubik Regular'] },
+      { group: 'Sans', id: 'ubuntu', title: 'Ubuntu', stack: ['Ubuntu Regular'] },
+      { group: 'Sans', id: 'pt-sans', title: 'PT Sans', stack: ['PT Sans Regular'] },
+      { group: 'Sans', id: 'oswald', title: 'Oswald', stack: ['Oswald Regular'] },
+      { group: 'Sans', id: 'din-pro', title: 'DIN Pro', stack: ['DIN Pro Regular'] },
+      { group: 'Sans', id: 'din-pro-bold', title: 'DIN Pro Bold', stack: ['DIN Pro Bold'] },
+      { group: 'Sans', id: 'metropolis', title: 'Metropolis', stack: ['Metropolis Regular'] },
+      { group: 'Serif', id: 'merriweather', title: 'Merriweather', stack: ['Merriweather Regular'] },
+      { group: 'Serif', id: 'playfair', title: 'Playfair Display', stack: ['Playfair Display Regular'] },
+      { group: 'Serif', id: 'lora', title: 'Lora', stack: ['Lora Regular'] },
+      { group: 'Serif', id: 'pt-serif', title: 'PT Serif', stack: ['PT Serif Regular'] },
+      { group: 'Mono', id: 'roboto-mono', title: 'Roboto Mono', stack: ['Roboto Mono Regular'] }
+    ];
+    const FALLBACK_FONT = 'Arial Unicode MS Regular';
+    let activeFont = FONTS[0].id;
+    function fontStack() {
+      const font = FONTS.find(f => f.id === activeFont) || FONTS[0];
+      return [...font.stack, FALLBACK_FONT];
+    }
+    const MARKER_TYPES = ['elevator', 'stairs', 'wc'];
+
+    const map = new MapboxMap({
+      container: 'map', style: RASTER_STYLE,
+      center: [-113.99607348716607, 46.86704363356705], zoom: 17.5, maxZoom: 22
+    });
+    map.boxZoom.disable();
+    map.addControl(new NavigationControl({ visualizePitch: true }), 'top-left');
+
+    let styleKind = 'raster', base = 'sat', poolSize = 0, ready = false;
+    let collection = null, activeLevel = null, hoveredIndex = null;
+    let markersCollection = EMPTY_FC;
+    const levelData = new Map();
+
+    /* ---------- layers ---------- */
+    // Text scales with the map; the engine caps text-size at 255px.
+    function zoomScaledSize(expr) {
+      const safe = ['max', 6, ['min', 60, expr]];
+      return ['interpolate', ['exponential', 2], ['zoom'], 12, ['/', safe, 64], 20, ['*', safe, 4]];
+    }
+    function addLayers() {
+      map.addSource(SOURCE_ID, { type: 'geojson', data: EMPTY_FC });
+      map.addSource(LABELS_SOURCE_ID, { type: 'geojson', data: EMPTY_FC });
+      map.addLayer({
+        id: 'shapes-label', type: 'symbol', source: LABELS_SOURCE_ID,
+        layout: {
+          'text-field': ['coalesce', ['get', 'label'], ''],
+          'text-size': zoomScaledSize(['to-number', ['coalesce', ['get', 'textSize'], 28]]),
+          'text-rotate': ['to-number', ['coalesce', ['get', 'textAngle'], 0]],
+          'text-rotation-alignment': 'map',
+          'text-allow-overlap': true, 'text-ignore-placement': true,
+          'text-font': fontStack()
+        },
+        paint: { 'text-color': '#fff', 'text-halo-color': '#000', 'text-halo-width': 1.2 }
+      });
+    }
+    // One layer set per feature (addressed by __index) so each outline stays above its own fill.
+    function buildLayerPool(size) {
+      for (let i = 0; i < size; i++) {
+        const f = ['==', ['get', '__index'], i];
+        map.addLayer({
+          id: `shape-fill-${i}`, type: 'fill', source: SOURCE_ID,
+          filter: ['all', f, ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'MultiPolygon']]],
+          paint: { 'fill-color': FILL_EXPR }
+        }, 'shapes-label');
+        map.addLayer({
+          id: `shape-line-${i}`, type: 'line', source: SOURCE_ID,
+          filter: ['all', f, ['!=', ['geometry-type'], 'Point'], ['!=', ['geometry-type'], 'MultiPoint']],
+          paint: { 'line-color': OUTLINE_EXPR, 'line-width': 2 }
+        }, 'shapes-label');
+        map.addLayer({
+          id: `shape-point-${i}`, type: 'circle', source: SOURCE_ID,
+          filter: ['all', f, ['any', ['==', ['geometry-type'], 'Point'], ['==', ['geometry-type'], 'MultiPoint']]],
+          paint: {
+            'circle-color': FILL_EXPR, 'circle-radius': 7,
+            'circle-stroke-color': OUTLINE_EXPR, 'circle-stroke-width': 2
+          }
+        }, 'shapes-label');
+      }
+    }
+    function addMarkerImages() {
+      return Promise.all(MARKER_TYPES.map(id => new Promise(resolve => {
+        if (map.hasImage(id)) return resolve();
+        map.loadImage(`icons/${id}.png`, (err, image) => {
+          if (!err && !map.hasImage(id)) map.addImage(id, image);
+          resolve();
+        });
+      })));
+    }
+    function addMarkerLayer() {
+      map.addSource(MARKERS_SOURCE_ID, { type: 'geojson', data: markersForLevel() });
+      map.addLayer({
+        id: 'markers-icons', type: 'symbol', source: MARKERS_SOURCE_ID,
+        layout: {
+          'icon-image': ['get', 'type'],
+          'icon-size': ['interpolate', ['exponential', 2], ['zoom'], 0, 0.9 / Math.pow(2, 18.6), 18.6, 0.9, 22, 0.9],
+          'icon-allow-overlap': true, 'icon-ignore-placement': true
+        }
+      });
+    }
+
+    /* ---------- data ---------- */
+    function flatBounds(geometry) {
+      const flat = geometry.coordinates.flat(Infinity);
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (let i = 0; i < flat.length; i += 2) {
+        minX = Math.min(minX, flat[i]); maxX = Math.max(maxX, flat[i]);
+        minY = Math.min(minY, flat[i + 1]); maxY = Math.max(maxY, flat[i + 1]);
+      }
+      return [minX, minY, maxX, maxY];
+    }
+    // Labels sit at their own geographic point (properties.labelPoint), so they never drift on zoom.
+    function labelAnchor(feature) {
+      const p = feature.properties?.labelPoint;
+      if (Array.isArray(p) && p.length === 2 && isFinite(p[0]) && isFinite(p[1])) return p;
+      const [minX, minY, maxX, maxY] = flatBounds(feature.geometry);
+      return [(minX + maxX) / 2, (minY + maxY) / 2];
+    }
+    function labelPoints(fc) {
+      return {
+        type: 'FeatureCollection', features: (fc?.features || [])
+          .filter(f => f.properties.label)
+          .map(f => ({
+            type: 'Feature',
+            properties: { label: f.properties.label, textSize: f.properties.textSize, textAngle: f.properties.textAngle },
+            geometry: { type: 'Point', coordinates: labelAnchor(f) }
+          }))
+      };
+    }
+    function markersForLevel() {
+      return { type: 'FeatureCollection', features: markersCollection.features.filter(f => f.properties.level === activeLevel) };
+    }
+    function setData() {
+      map.getSource(SOURCE_ID)?.setData(collection || EMPTY_FC);
+      map.getSource(LABELS_SOURCE_ID)?.setData(labelPoints(collection));
+      map.getSource(MARKERS_SOURCE_ID)?.setData(markersForLevel());
+    }
+    function fitToCollection(fc) {
+      if (!fc?.features.length) return;
+      let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
+      for (const feature of fc.features) {
+        const [x1, y1, x2, y2] = flatBounds(feature.geometry);
+        minX = Math.min(minX, x1); minY = Math.min(minY, y1);
+        maxX = Math.max(maxX, x2); maxY = Math.max(maxY, y2);
+      }
+      if (isFinite(minX)) map.fitBounds([[minX, minY], [maxX, maxY]], { padding: 60, duration: 0, maxZoom: 21 });
+    }
+
+    const CACHE_BUST = Date.now();   // GitHub Pages serves .geojson through a CDN cache
+    async function loadFile(file) {
+      const response = await fetch(`${file}?v=${CACHE_BUST}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`${file}: ${response.status}`);
+      return response.json();
+    }
+    async function loadLevel(level) {
+      const parts = await Promise.all(level.files.map(loadFile));
+      const fc = { type: 'FeatureCollection', features: parts.flatMap(c => c.features || []) };
+      // __index is both the layer address in the pool and the draw order.
+      fc.features.forEach((feature, index) => {
+        feature.properties = feature.properties || {};
+        feature.properties.__index = index;
+      });
+      return fc;
+    }
+
+    /* ---------- levels ---------- */
+    function syncButtons() {
+      for (const button of document.querySelectorAll('#levels button')) {
+        button.setAttribute('aria-pressed', String(button.dataset.level === activeLevel));
+        button.disabled = !ready || !levelData.has(button.dataset.level);
+      }
+      for (const button of document.querySelectorAll('#base button')) {
+        button.setAttribute('aria-pressed', String(button.dataset.base === base));
+        button.disabled = !ready;
+      }
+      document.querySelector('#font-select').disabled = !ready;
+    }
+    // Switching a level only swaps the source data — camera stays where the user put it.
+    function selectLevel(id) {
+      if (!ready || id === activeLevel || !levelData.has(id)) return;
+      activeLevel = id;
+      collection = levelData.get(id);
+      setHover(null);
+      setData();
+      syncButtons();
+    }
+
+    /* ---------- base style ---------- */
+    function applyRasterVisibility() {
+      map.setLayoutProperty('osm', 'visibility', base === 'osm' ? 'visible' : 'none');
+      map.setLayoutProperty('sat', 'visibility', base === 'sat' ? 'visible' : 'none');
+    }
+    // setStyle wipes our sources, layers and icons — rebuild them once the new style loads.
+    async function reattachOverlay() {
+      hoveredIndex = null;
+      addLayers();
+      buildLayerPool(poolSize);
+      await addMarkerImages();
+      addMarkerLayer();
+      setData();
+    }
+    function setBase(b) {
+      if (!ready || b === base) return;
+      base = b;
+      syncButtons();
+      if (b === 'mbx') {
+        if (styleKind === 'mbx') return;
+        styleKind = 'mbx';
+        map.once('style.load', reattachOverlay);
+        map.setStyle(MAPBOX_STYLE_URL);
+      } else if (styleKind !== 'raster') {
+        styleKind = 'raster';
+        map.once('style.load', () => { reattachOverlay(); applyRasterVisibility(); });
+        map.setStyle(JSON.parse(JSON.stringify(RASTER_STYLE)));   // setStyle mutates the style object
+      } else {
+        applyRasterVisibility();
+      }
+    }
+
+    /* ---------- label font ---------- */
+    // Swapping the stack on the live layer — no style reload, glyphs are fetched on demand.
+    function setFont(id) {
+      if (!ready || id === activeFont || !FONTS.some(f => f.id === id)) return;
+      activeFont = id;
+      if (map.getLayer('shapes-label')) map.setLayoutProperty('shapes-label', 'text-font', fontStack());
+    }
+
+    /* ---------- hover + click ---------- */
+    function linkFor(feature) {
+      const label = feature?.properties?.label;
+      return typeof label === 'string' ? ROOM_LINKS[label.trim().toLowerCase()] || null : null;
+    }
+    // Every feature has its own layer, so highlighting is swapping one layer's fill-color.
+    function setHover(index) {
+      if (hoveredIndex === index) return;
+      if (hoveredIndex !== null && map.getLayer(`shape-fill-${hoveredIndex}`))
+        map.setPaintProperty(`shape-fill-${hoveredIndex}`, 'fill-color', FILL_EXPR);
+      hoveredIndex = index;
+      if (hoveredIndex !== null && map.getLayer(`shape-fill-${hoveredIndex}`))
+        map.setPaintProperty(`shape-fill-${hoveredIndex}`, 'fill-color', HOVER_COLOR);
+      map.getCanvas().style.cursor = hoveredIndex === null ? '' : 'pointer';
+    }
+    // Listing hundreds of pool layers in the query is costly — filter the results by name instead.
+    function clickableAt(point) {
+      for (const feature of map.queryRenderedFeatures(point)) {
+        if (/^shape-fill-\d+$/.test(feature.layer?.id || '') && linkFor(feature)) return feature;
+      }
+      return null;
+    }
+    map.on('mousemove', e => {
+      const feature = clickableAt(e.point);
+      setHover(feature ? feature.properties.__index : null);
+    });
+    map.on('mouseout', () => setHover(null));
+    map.on('click', e => {
+      const link = linkFor(clickableAt(e.point));
+      if (link) window.open(link, '_blank', 'noopener');
+    });
+
+    /* ---------- start ---------- */
+    for (const level of LEVELS) {
+      const button = document.createElement('button');
+      button.dataset.level = level.id;
+      button.textContent = level.title;
+      button.disabled = true;
+      button.onclick = () => selectLevel(level.id);
+      document.querySelector('#levels').appendChild(button);
+    }
+    for (const button of document.querySelectorAll('#base button')) {
+      button.onclick = () => setBase(button.dataset.base);
+    }
+    const fontSelect = document.querySelector('#font-select');
+    const fontGroups = new Map();
+    for (const font of FONTS) {
+      const name = font.group || 'Other';
+      if (!fontGroups.has(name)) {
+        const group = document.createElement('optgroup');
+        group.label = name;
+        fontGroups.set(name, group);
+        fontSelect.appendChild(group);
+      }
+      const option = document.createElement('option');
+      option.value = font.id;
+      option.textContent = font.title;
+      fontGroups.get(name).appendChild(option);
+    }
+    fontSelect.value = activeFont;
+    fontSelect.disabled = true;
+    fontSelect.onchange = () => setFont(fontSelect.value);
+
+    map.on('load', async () => {
+      addLayers();
+      await addMarkerImages();
+      addMarkerLayer();
+      try {
+        const fc = await loadFile('markers.geojson');
+        if (fc?.type === 'FeatureCollection') markersCollection = fc;
+      } catch (err) { console.warn('markers.geojson:', err.message); }
+
+      const results = await Promise.allSettled(LEVELS.map(loadLevel));
+      results.forEach((result, i) => {
+        if (result.status === 'fulfilled') levelData.set(LEVELS[i].id, result.value);
+        else console.warn(`level ${LEVELS[i].id}:`, result.reason);
+      });
+      poolSize = Math.max(0, ...[...levelData.values()].map(fc => fc.features.length));
+      buildLayerPool(poolSize);
+      ready = true;
+      const start = levelData.has(DEFAULT_LEVEL) ? DEFAULT_LEVEL : [...levelData.keys()][0];
+      if (!start) { console.warn('no levels loaded'); return; }
+      selectLevel(start);
+      fitToCollection(collection);
+    });
+  </script>
+</body>
+
+</html>
